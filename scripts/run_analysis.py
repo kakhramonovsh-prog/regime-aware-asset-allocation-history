@@ -169,6 +169,9 @@ def run_phase5(config: dict, plan: dict, prices: pd.DataFrame) -> None:
         ],
         ignore_index=True,
     )
+    # Holm adjustment across the full family of 15 comparisons
+    # (secondary column; unadjusted HAC(3) p-values are unchanged).
+    comparisons["p_holm"] = vol.holm_adjust(comparisons["p_value"])
     cpath = tables_dir / "forecast_comparisons.csv"
     comparisons.to_csv(cpath, index=False, float_format="%.6g")
     artifacts.append(cpath)

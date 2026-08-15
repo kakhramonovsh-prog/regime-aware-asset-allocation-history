@@ -23,9 +23,27 @@ realized integrated variance (sum of squared daily log returns).
 249 month-end origins per asset, 2005-11-30 to 2026-06-30 (the final
 partial month is excluded); identical dates for all models, enforced by
 an alignment assertion. Losses: QLIKE primary, MAE/RMSE (variance
-units) secondary. Daily variance floor 1e-8. Implementation choices
-documented in `src/volatility.py` before results were seen: zero-mean
-GARCH on returns scaled by 100; DM tests with HAC(3) standard errors.
+units) secondary. Daily variance floor 1e-8.
+
+### Implementation decisions and their provenance (stated honestly)
+
+Four choices are **not** part of the design frozen at
+`v0.2.0-preregistered`:
+
+1. zero-mean Gaussian GARCH specification (no conditional mean model),
+2. returns scaled by 100 for optimizer stability,
+3. HAC lag 3 for Diebold-Mariano standard errors,
+4. excluding the sample's final partial month (not a full holding
+   period).
+
+They were written into `src/volatility.py` and its tests before the
+estimation run executed, but they were first committed to git in the
+same commit as the results, so git alone cannot prove they preceded the
+numbers. They are therefore reported as **pre-estimation implementation
+decisions, not preregistered commitments**. None was revised after
+seeing output. The frozen plan fixed what mattered for the portfolio:
+the model set, the estimation scheme, the loss functions, and the
+identity of the portfolio-feeding model.
 
 ## Estimation diagnostics
 
@@ -48,25 +66,49 @@ table, same ordering everywhere):
 
 **GARCH(1,1) attains the lowest QLIKE for all five assets**, in both
 the full window and the 2010+ subset, and it also leads MAE/RMSE for
-most assets. Diebold-Mariano on QLIKE differentials
-(`forecast_comparisons.csv`, HAC(3), n = 249):
+most assets.
 
-- **GARCH vs hist63:** GARCH favored for all five; differences
-  significant at the 5% level for SPY (p = 0.035), QQQ (p = 0.021), and
-  GLD (p = 0.008); not significant for IWM (p = 0.11) or IEF (p = 0.17).
-- **GARCH vs EWMA:** GARCH favored for all five; significant at 5% for
-  SPY (p = 0.011), QQQ (p = 0.001), and IWM (p = 0.031); marginal for
-  GLD (p = 0.059) and IEF (p = 0.066).
-- **EWMA vs hist63:** EWMA ahead for four of five assets but **never
-  significantly** (p = 0.12-0.45); hist63 is trivially ahead for IEF.
+### Effect sizes before significance
 
-Caveats stated up front: 15 pairwise tests are reported with no
-multiplicity correction because none of them is the preregistered
-primary hypothesis (that is the Phase 9-11 portfolio comparison); with
-~249 monthly observations and volatility-clustered losses, p-values
-near 0.05 deserve little weight. The qualitative pattern — GARCH first,
-EWMA second, rolling historical last — is consistent across assets and
-subwindows, which matters more than any single p-value.
+`forecast_comparisons.csv` reports the mean QLIKE differential with its
+HAC(3) standard error and 95% confidence interval; negative favors the
+first model. Selected rows (n = 249 each):
+
+| Comparison | Asset | Mean diff | 95% CI | p (HAC) | p (Holm, 15 tests) |
+|---|---|---|---|---|---|
+| GARCH vs EWMA | QQQ | −0.067 | [−0.107, −0.027] | 0.001 | **0.016** |
+| GARCH vs EWMA | SPY | −0.098 | [−0.172, −0.023] | 0.011 | 0.138 |
+| GARCH vs EWMA | IWM | −0.049 | [−0.093, −0.005] | 0.031 | 0.336 |
+| GARCH vs hist63 | GLD | −0.063 | [−0.110, −0.017] | 0.008 | 0.109 |
+| GARCH vs hist63 | SPY | −0.217 | [−0.419, −0.016] | 0.035 | 0.345 |
+| EWMA vs hist63 | SPY | −0.120 | [−0.278, +0.038] | 0.138 | 0.790 |
+
+Full family: **all ten GARCH comparisons have negative point
+estimates** (GARCH favored), and seven of ten have unadjusted p < 0.10.
+EWMA beats hist63 on point estimates for four of five assets but every
+one of those confidence intervals contains zero.
+
+### Multiplicity
+
+Holm-adjusted p-values across the family of 15 comparisons appear as a
+secondary column; the unadjusted HAC(3) results are unchanged. **After
+Holm adjustment only one comparison remains significant at 5%: GARCH
+vs EWMA for QQQ (p_holm = 0.016).** SPY's GARCH-vs-EWMA result
+(p_holm = 0.138) and every GARCH-vs-hist63 result (p_holm ≥ 0.109) do
+not survive.
+
+The defensible statement is therefore: **GARCH's point-estimate
+advantage is consistent in sign across all five assets and both
+comparisons, but individually the differences are mostly not
+statistically distinguishable from zero once multiplicity is taken into
+account.** Consistency of sign across assets is the stronger evidence
+here; no single test carries the claim. With ~249 monthly observations
+and volatility-clustered losses, this is the expected power situation
+rather than a surprise.
+
+None of these 15 tests is the preregistered primary hypothesis (that is
+the Phase 9-11 portfolio comparison), so the Holm family is confined to
+this forecast-evaluation exercise.
 
 ## The preregistration consequence, stated plainly
 

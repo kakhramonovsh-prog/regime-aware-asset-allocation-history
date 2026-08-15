@@ -193,3 +193,20 @@ def test_loss_table_and_dm_shapes(returns):
     dm = vol.diebold_mariano(fc, "ewma", "hist63")
     assert len(dm) == len(returns.columns)
     assert dm["p_value"].between(0, 1).all()
+    # CI is centered on the mean differential with HAC half-width.
+    row = dm.iloc[0]
+    assert row["ci95_lower"] == pytest.approx(row["mean_qlike_diff"] - 1.96 * row["hac_se"])
+    assert row["ci95_upper"] == pytest.approx(row["mean_qlike_diff"] + 1.96 * row["hac_se"])
+    assert row["ci95_lower"] <= row["mean_qlike_diff"] <= row["ci95_upper"]
+
+
+def test_holm_adjustment_known_case():
+    # Classic textbook check: p = (0.01, 0.04, 0.03, 0.005), m = 4.
+    # Sorted: 0.005*4=0.02; 0.01*3=0.03; 0.03*2=0.06; 0.04*1=0.04 -> cummax 0.06.
+    p = np.array([0.01, 0.04, 0.03, 0.005])
+    adj = vol.holm_adjust(p)
+    np.testing.assert_allclose(adj, [0.03, 0.06, 0.06, 0.02])
+    # Monotone in the original ordering of sorted p-values and capped at 1.
+    assert (adj <= 1).all()
+    big = vol.holm_adjust(np.array([0.5, 0.9, 0.7]))
+    assert (big <= 1).all()

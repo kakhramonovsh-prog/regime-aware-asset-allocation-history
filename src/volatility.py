@@ -18,12 +18,14 @@ Frozen specification (config/analysis_plan.yaml, docs/research_design.md §4):
 * EWMA feeds the portfolio in later phases regardless of which model
   wins this comparison (fixed ex ante).
 
-Implementation choices documented here (made before any result was
-seen): GARCH uses a zero-mean specification on daily log returns scaled
-by 100 for optimizer stability; the final partial month of the sample
-is excluded because it is not a full holding period; DM tests use HAC
-standard errors with 3 lags (holding periods are non-overlapping
-months, so serial correlation in loss differentials should be mild).
+Implementation decisions, with honest provenance: the zero-mean GARCH
+specification, the x100 return scaling, and HAC lag 3 for DM tests were
+written into this module and its tests before the estimation run
+executed, but they are NOT part of the plan frozen at
+v0.2.0-preregistered and were first committed to git in the same commit
+as the Phase 5 results. They are pre-estimation implementation choices,
+not preregistered commitments. The same applies to excluding the final
+partial month (not a full holding period).
 """
 
 from __future__ import annotations
@@ -265,9 +267,10 @@ def diebold_mariano(
 ) -> pd.DataFrame:
     """DM test on QLIKE loss differentials per asset (a minus b).
 
-    Negative mean differential favors ``model_a``. HAC (Newey-West)
-    standard errors with ``hac_lags`` lags; the ~250 monthly
-    observations caveat belongs in the report, not hidden here.
+    Negative mean differential favors ``model_a``. Reports the mean
+    differential with its HAC (Newey-West, ``hac_lags`` lags) standard
+    error and 95% confidence interval, not only the p-value. The ~250
+    monthly observations caveat belongs in the report, not hidden here.
     """
     import statsmodels.api as sm
 
@@ -280,15 +283,37 @@ def diebold_mariano(
         ols = sm.OLS(d.to_numpy(), np.ones(len(d))).fit(
             cov_type="HAC", cov_kwds={"maxlags": hac_lags}
         )
+        mean_diff = float(d.mean())
+        hac_se = float(ols.bse[0])
         rows.append(
             {
                 "asset": asset,
                 "comparison": f"{model_a} vs {model_b}",
-                "mean_qlike_diff": float(d.mean()),
+                "mean_qlike_diff": mean_diff,
+                "hac_se": hac_se,
+                "ci95_lower": mean_diff - 1.96 * hac_se,
+                "ci95_upper": mean_diff + 1.96 * hac_se,
                 "dm_stat": float(ols.tvalues[0]),
                 "p_value": float(ols.pvalues[0]),
                 "n": len(d),
-                "favors": model_a if d.mean() < 0 else model_b,
+                "favors": model_a if mean_diff < 0 else model_b,
             }
         )
     return pd.DataFrame(rows)
+
+
+def holm_adjust(p_values: pd.Series | np.ndarray) -> np.ndarray:
+    """Holm step-down adjusted p-values for a family of tests.
+
+    Sort ascending, multiply p_(i) by (m - i), enforce monotonicity via
+    a running maximum, cap at 1, and return in the original order.
+    """
+    p = np.asarray(p_values, dtype=float)
+    m = len(p)
+    order = np.argsort(p)
+    adjusted_sorted = np.maximum.accumulate(
+        np.minimum((m - np.arange(m)) * p[order], 1.0)
+    )
+    adjusted = np.empty(m)
+    adjusted[order] = np.minimum(adjusted_sorted, 1.0)
+    return adjusted
