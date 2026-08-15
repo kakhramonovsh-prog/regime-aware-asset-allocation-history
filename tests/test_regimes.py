@@ -468,6 +468,94 @@ def test_rebalance_origins_start_at_preregistered_date(prices):
 # Comparison helpers
 # ---------------------------------------------------------------------------
 
+
+# ---------------------------------------------------------------------------
+# Amendment A2: degenerate fits fall back to unconditional covariance
+# ---------------------------------------------------------------------------
+
+def test_a2_clean_fit_consumes_regime_covariance():
+    clean = {"absorbing_state": False, "degenerate_occupancy": False,
+             "singular_covariance": False}
+    out = rg.covariance_consumption(clean)
+    assert out["covariance_used_for_allocation"] == rg.COV_REGIME
+    assert out["fallback_used"] is False
+    assert out["fallback_reason"] == ""
+
+
+def test_a2_absorbing_row_triggers_unconditional_fallback():
+    degenerate = {"absorbing_state": True, "degenerate_occupancy": False,
+                  "singular_covariance": False}
+    out = rg.covariance_consumption(degenerate)
+    assert out["covariance_used_for_allocation"] == rg.COV_FALLBACK
+    assert out["fallback_used"] is True
+    assert out["fallback_reason"] == "absorbing_transition"
+
+
+def test_a2_covers_occupancy_and_singular_reasons():
+    assert (
+        rg.covariance_consumption(
+            {"absorbing_state": False, "degenerate_occupancy": True,
+             "singular_covariance": False}
+        )["fallback_reason"]
+        == "degenerate_occupancy"
+    )
+    both = rg.covariance_consumption(
+        {"absorbing_state": True, "degenerate_occupancy": True,
+         "singular_covariance": False}
+    )
+    assert both["fallback_reason"] == "absorbing_transition;degenerate_occupancy"
+
+
+def test_a2_preserves_probability_unchanged(regime_features):
+    """The fallback must never replace, interpolate, or delete the
+    probability — only covariance consumption changes."""
+    dates = pd.DatetimeIndex(regime_features.index[300::100])
+    rt = rg.run_expanding_hmm(regime_features, dates, CFG)["realtime"]
+    assert (rt["hmm_probability_used_for_reporting"] == rt["high_vol_state_prob"]).all()
+    assert rt["high_vol_state_prob"].notna().all()
+    assert len(rt) == len(dates)          # no rebalance deleted
+    # Fallback rows keep their original probability.
+    fallback = rt[rt["fallback_used"]]
+    if len(fallback):
+        assert (
+            fallback["hmm_probability_used_for_reporting"]
+            == fallback["high_vol_state_prob"]
+        ).all()
+
+
+def test_a2_fallback_flag_matches_guard(regime_features):
+    dates = pd.DatetimeIndex(regime_features.index[300::100])
+    rt = rg.run_expanding_hmm(regime_features, dates, CFG)["realtime"]
+    # Every fallback row is a guarded row and names a reason.
+    assert (rt.loc[rt["fallback_used"], "guard_triggered"]).all()
+    assert (rt.loc[rt["fallback_used"], "fallback_reason"] != "").all()
+    assert (rt.loc[~rt["fallback_used"], "fallback_reason"] == "").all()
+    assert (
+        rt.loc[~rt["fallback_used"], "covariance_used_for_allocation"] == rg.COV_REGIME
+    ).all()
+
+
+def test_a2_symmetric_across_states():
+    """An absorbing LOW-volatility state must trigger the same rule."""
+    class LowAbsorbing:
+        transmat_ = np.array([[1.0, 0.0], [0.04, 0.96]])   # state 0 absorbing
+        means_ = np.array([[0.0, -1.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]])
+        covars_ = np.stack([np.eye(4), np.eye(4)])
+
+        def predict_proba(self, X):
+            return np.full((len(X), 2), 0.5)
+
+        def score(self, X):
+            return -100.0
+
+    features = pd.DataFrame({name: np.linspace(0, 1, 300) for name in rg.FEATURE_NAMES})
+    diag = rg.state_diagnostics(
+        LowAbsorbing(), np.zeros((300, 4)), features, np.array([0, 1]), CFG
+    )
+    assert diag["absorbing_state"] is True
+    assert rg.covariance_consumption(diag)["fallback_reason"] == "absorbing_transition"
+
+
 def test_distinctiveness_diagnostic_bounds(regime_features):
     dates = regime_features.index[300::100]
     rt = rg.run_expanding_hmm(regime_features, pd.DatetimeIndex(dates), CFG)["realtime"]

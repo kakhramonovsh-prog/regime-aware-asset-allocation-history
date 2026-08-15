@@ -7,8 +7,9 @@ git commit per [phase6_manifest.json](phase6_manifest.json)
 estimation, portfolio optimization, or strategy performance was
 computed or examined.** All numbers are read from the generated tables.
 
-**Status: OPEN — not accepted.** One finding (Section 6) requires a
-documented decision before Phase 7 may consume these probabilities.
+**Status: CLOSED**, tag `v0.5.0-regimes`. The absorbing-state finding
+(Section 6) was resolved by **Amendment A2**, adopted before any
+covariance or portfolio result existed.
 
 Throughout, the two states are called **latent volatility states**.
 They are estimated from volatility-related features, and the evidence
@@ -182,15 +183,57 @@ performance information of any kind has been computed, so the choice
 cannot be performance-motivated. What is known: the four dates, their
 flags, and P(high) = 1.0 at each.
 
-**Recommendation** (for a dated amendment, to be made before Phase 7):
-treat an absorbing state as a degenerate fit under the same rule the
-plan already applies to degenerate occupancy — fall back to the
-unconditional covariance for that rebalance and record the fallback in
-an audit column. This keeps one rule for "the fit is degenerate,"
-applies to 2% of rebalances, and requires no change to the model,
-features, or selection procedure. The alternative (accept the absorbing
-fits as-is) is also defensible and should be recorded explicitly if
-chosen.
+### Resolution: Amendment A2 (adopted 2026-08-15, before any covariance or portfolio result)
+
+An absorbing transition row is treated as a **degenerate fit**: the fit
+stays in the regime diagnostics and **its probability is preserved and
+reported unchanged**, but it does not supply a regime-conditioned
+covariance for that rebalance. Phase 7 instead uses the unconditional
+Ledoit-Wolf covariance estimated through that date. The rule applies
+symmetrically to either state, and the fallback is audit-logged.
+
+Rationale recorded with the amendment: the transition estimate sits on
+the parameter boundary, and horizon-averaging `p_t P_t^h` would
+otherwise mechanically assign 100% probability to the high-volatility
+state for the entire holding period. Unconditional shrinkage is
+conservative and matches the degeneracy policy the frozen plan already
+applies to low occupancy.
+
+Verified in `realtime_probabilities.parquet`:
+
+| Date | P(high) reported | Covariance consumed | Reason |
+|---|---|---|---|
+| 2009-12-31 | 1.000 | unconditional_ledoit_wolf | absorbing_transition |
+| 2012-03-30 | 1.000 | unconditional_ledoit_wolf | absorbing_transition |
+| 2012-04-30 | 1.000 | unconditional_ledoit_wolf | absorbing_transition |
+| 2012-05-31 | 1.000 | unconditional_ledoit_wolf | absorbing_transition |
+
+All 196 other rebalances consume the regime-conditioned covariance.
+`hmm_probability_used_for_reporting` equals `high_vol_state_prob` on
+every row; no rebalance was deleted, no probability replaced or
+interpolated, no refit repeated to obtain a different transition
+matrix, and the absorbing threshold is unchanged from its
+pre-amendment value. An `accept_as_estimated` case is in the frozen
+robustness grid to show whether this conservative fallback materially
+affects any conclusion.
+
+## 6b. Reproducibility evidence
+
+Phase 6 was executed twice: once before Amendment A2 and once after, on
+identical data and seeds. Results:
+
+- **Selected seeds identical at all 200 refits**, and **all 200
+  classifications identical**.
+- Filtered probabilities agree to **1.2e-11** (97 of 200 rows differ at
+  that magnitude; BLAS summation order is not bit-reproducible).
+- The closest any probability comes to the 0.5 decision boundary is
+  **0.164**, roughly ten orders of magnitude larger than the numerical
+  wobble, so no classification could flip from it.
+
+The discrete outputs a strategy consumes — the state label and the
+selected fit — are therefore stable, which is exactly the property the
+tolerance-based selection rule was introduced to guarantee. Bit-exact
+reproducibility of the floating-point probabilities is not claimed.
 
 ## 7. What the state path looks like
 

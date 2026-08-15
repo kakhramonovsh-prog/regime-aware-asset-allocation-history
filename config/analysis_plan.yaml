@@ -83,6 +83,12 @@ regime_covariance:
   neff_threshold: 60          # ~1 quarter of daily data; rationale in design doc §6 (A1)
   neff_shrinkage_rule: "mix weight n_eff/(n_eff+60) toward unconditional"
   psd_eigenvalue_floor: 1.0e-10
+  # Amendment A2: degenerate fits do not supply a regime-conditioned
+  # covariance; the probability itself is preserved and reported.
+  degeneracy_fallback: unconditional_ledoit_wolf
+  degeneracy_reasons: [absorbing_transition, degenerate_occupancy, singular_covariance]
+  absorbing_threshold: "diag(P) >= 1 - 1e-12"
+  fallback_preserves_probability: true
 
 portfolio:
   strategies_main:                       # ablation ladder, in order
@@ -120,6 +126,7 @@ robustness_grid:
   feature_ablations: [drop_vix, drop_realized_vol]
   covariance_estimators: [sample, ewma, ledoit_wolf]
   neff_thresholds: [30, 60, 120]        # Amendment A1
+  degeneracy_handling: [fallback_unconditional, accept_as_estimated]  # Amendment A2
   estimation_windows: [expanding, rolling_5y]
   weight_caps: [0.30, 0.40, 0.50]
   cost_bps: [0, 5, 20]
@@ -151,3 +158,21 @@ amendments:
       - "robustness_grid.neff_thresholds: [30, 60, 120] added; rationale for 60 documented in docs/research_design.md §6"
       - "cost convention restated with worked example (design doc §8); cost multiplies full trade sum, not halved turnover"
       - "reference list verified; [VERIFY] markers replaced with DOIs"
+  A2:
+    date: "2026-08-15"
+    results_seen: false          # no covariance/portfolio result existed
+    knowledge_at_adoption: "4 affected dates, their guard flags, and their probabilities"
+    reason: "4/200 refits produced an absorbing transition row; frozen plan covered occupancy degeneracy only"
+    changes:
+      - "absorbing transition row (diag(P) >= 1 - 1e-12, threshold fixed before this amendment) is treated as a degenerate fit"
+      - "degenerate fits do not supply a regime-conditioned covariance; allocation uses unconditional Ledoit-Wolf estimated through that date"
+      - "real-time probability preserved unchanged and still reported; fallback date and reason audit-logged"
+      - "rule applies symmetrically to either state"
+      - "robustness case accept_as_estimated added to the grid"
+    excluded:
+      - replace_the_probability
+      - interpolate_from_neighboring_months
+      - delete_the_rebalance
+      - refit_until_preferred_transition_matrix
+      - change_absorbing_threshold_after_seeing_results
+    affected_dates: ["2009-12-31", "2012-03-30", "2012-04-30", "2012-05-31"]

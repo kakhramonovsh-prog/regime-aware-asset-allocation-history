@@ -426,6 +426,35 @@ def state_diagnostics(
     return out
 
 
+# Amendment A2 (2026-08-15): a degenerate fit stays in the diagnostics
+# and its probability is preserved, but it does not supply a
+# regime-conditioned covariance for that rebalance. Reasons are ordered
+# so the audit log names the most specific condition first.
+DEGENERACY_REASONS = (
+    ("absorbing_state", "absorbing_transition"),
+    ("degenerate_occupancy", "degenerate_occupancy"),
+    ("singular_covariance", "singular_covariance"),
+)
+COV_REGIME = "regime_conditioned"
+COV_FALLBACK = "unconditional_ledoit_wolf"
+
+
+def covariance_consumption(diagnostics: dict) -> dict:
+    """Decide which covariance Phase 7 may consume for this rebalance.
+
+    Implements Amendment A2. The probability is never altered here; only
+    the covariance source changes, and the reason is recorded. Applies
+    symmetrically to either state because the underlying flags do.
+    """
+    reasons = [label for flag, label in DEGENERACY_REASONS if diagnostics.get(flag)]
+    fallback = bool(reasons)
+    return {
+        "covariance_used_for_allocation": COV_FALLBACK if fallback else COV_REGIME,
+        "fallback_used": fallback,
+        "fallback_reason": ";".join(reasons),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Expanding-window driver
 # ---------------------------------------------------------------------------
@@ -493,6 +522,10 @@ def run_expanding_hmm(
         row["guard_triggered"] = diagnostics["guard_triggered"]
         row["n_failed_inits"] = int(sum(1 for r in records if not r["usable"]))
         row["selected_seed"] = int(selected_seed)
+        # Amendment A2 audit columns. The reported probability is the
+        # estimated one, unchanged; only covariance consumption differs.
+        row["hmm_probability_used_for_reporting"] = float(probs[-1])
+        row.update(covariance_consumption(diagnostics))
         realtime_rows.append(row)
 
         # Model-revision stability against the previous refit, measured

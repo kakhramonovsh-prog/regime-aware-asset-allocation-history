@@ -442,3 +442,54 @@ Phase 4 began and before any model estimation:
    turnover figure.
 4. **References verified (§13)**: `[VERIFY]` markers replaced with
    publisher-checked volumes, pages, and DOIs.
+
+### Amendment A2 — 2026-08-15 (no covariance or portfolio results existed)
+
+**Absorbing transition rows are treated as degenerate fits.**
+
+If either HMM state has a transition persistence meeting the previously
+recorded absorbing-state threshold (`diag(P) >= 1 - 1e-12`, fixed in
+`implementation_parameters.csv` before this amendment), the fit remains
+in the regime diagnostics, but the **regime-conditioned covariance is
+not consumed for that rebalance**. The portfolio-construction pipeline
+instead uses the unconditional Ledoit-Wolf covariance estimated through
+that date. The real-time probability is preserved unchanged, and the
+fallback date and reason are audit-logged. The rule applies
+symmetrically to either state.
+
+Recorded outputs per rebalance:
+
+```
+hmm_probability_used_for_reporting = original probability (unchanged)
+covariance_used_for_allocation     = unconditional Ledoit-Wolf
+fallback_used                      = True
+fallback_reason                    = "absorbing_transition"
+```
+
+**Rationale.** The transition estimate sits on the parameter boundary,
+and horizon-averaging `p_t P_t^h` would otherwise mechanically assign
+100% probability to the high-volatility state for the entire holding
+period. Unconditional shrinkage is conservative and already consistent
+with the degeneracy policy the plan applies to low occupancy. Four of
+200 origins are affected (2009-12-31, 2012-03-30, 2012-04-30,
+2012-05-31).
+
+**State of knowledge when adopted:** the four affected dates, their
+flags, and their probabilities were known. **No covariance estimate,
+portfolio weight, return, or performance statistic had been computed or
+examined**, so the rule could not be performance-motivated.
+
+Explicitly excluded (none of these is done): replacing the probability,
+interpolating from neighboring months, deleting the affected rebalance,
+refitting until a preferred transition matrix appears, or changing the
+absorbing threshold after seeing portfolio results.
+
+The same fallback treatment covers degenerate occupancy (the
+preregistered rule, reason `degenerate_occupancy`) and singular state
+covariance (reason `singular_covariance`); neither occurred in this
+sample, so neither affects any result.
+
+**Robustness requirement:** an `accept_as_estimated` case is added to
+the frozen robustness grid, using the original regime-conditioned
+covariance at those four dates, to show whether the conservative
+fallback materially affects conclusions.

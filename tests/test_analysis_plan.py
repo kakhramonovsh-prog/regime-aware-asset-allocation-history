@@ -82,3 +82,25 @@ def test_amendment_a1_recorded_before_results():
     )
     assert plan["robustness_grid"]["neff_thresholds"] == [30, 60, 120]
     assert plan["regime_covariance"]["neff_threshold"] == 60
+
+
+def test_amendment_a2_recorded_before_covariance_results():
+    plan = _load("analysis_plan.yaml")
+    a2 = plan["amendments"]["A2"]
+    assert a2["results_seen"] is False
+    assert a2["affected_dates"] == [
+        "2009-12-31", "2012-03-30", "2012-04-30", "2012-05-31"
+    ]
+    # The excluded actions are recorded so the rule cannot drift later.
+    assert set(a2["excluded"]) == {
+        "replace_the_probability",
+        "interpolate_from_neighboring_months",
+        "delete_the_rebalance",
+        "refit_until_preferred_transition_matrix",
+        "change_absorbing_threshold_after_seeing_results",
+    }
+    rc = plan["regime_covariance"]
+    assert rc["degeneracy_fallback"] == "unconditional_ledoit_wolf"
+    assert rc["fallback_preserves_probability"] is True
+    assert "absorbing_transition" in rc["degeneracy_reasons"]
+    assert "accept_as_estimated" in plan["robustness_grid"]["degeneracy_handling"]
