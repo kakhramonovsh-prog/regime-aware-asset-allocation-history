@@ -243,6 +243,60 @@ def fig_macro_features(macro: pd.DataFrame, slope: pd.Series, path: Path) -> Pat
     return path
 
 
+def fig_regime_probabilities(
+    realtime: pd.DataFrame,
+    expost: pd.DataFrame,
+    features: pd.DataFrame,
+    path: Path,
+) -> Path:
+    """Real-time filtered vs ex-post smoothed high-volatility probability.
+
+    The two panels answer different questions and must never be
+    conflated: the top panel is the only series a strategy may use (one
+    point per month-end, each from a model fit through that date); the
+    bottom is a full-sample descriptive path that conditions on the
+    future. The realized-volatility panel provides context.
+    """
+    rt = realtime.copy()
+    rt["date"] = pd.to_datetime(rt["date"])
+    ep = expost.copy()
+    ep["Date"] = pd.to_datetime(ep["Date"])
+
+    with plt.rc_context(_RC):
+        fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True,
+                                 gridspec_kw={"height_ratios": [1, 1, 0.9]})
+
+        axes[0].fill_between(rt["date"], rt["high_vol_state_prob"], 0,
+                             color=SERIES_1, alpha=0.85, linewidth=0, step="post")
+        axes[0].axhline(0.5, color=BASELINE, linewidth=0.9, linestyle="--")
+        axes[0].set_ylim(0, 1)
+        axes[0].set_ylabel("P(high-vol)")
+        axes[0].set_title("Real-time filtered probability of the high-volatility state "
+                          "(signal; monthly, each from data through that date)")
+
+        axes[1].fill_between(ep["Date"], ep["high_vol_state_prob"], 0,
+                             color="#898781", alpha=0.7, linewidth=0)
+        axes[1].axhline(0.5, color=BASELINE, linewidth=0.9, linestyle="--")
+        axes[1].set_ylim(0, 1)
+        axes[1].set_ylabel("P(high-vol)")
+        axes[1].set_title("Ex-post smoothed probability (full-sample; descriptive only, "
+                          "never a trading signal)")
+
+        rv = features["realized_vol_21d"] * 100
+        axes[2].plot(rv.index, rv, color=INK, linewidth=0.9)
+        axes[2].set_ylabel("SPY 21d RV (%)")
+        axes[2].set_title("Backward-looking realized volatility (context)")
+
+        for ax in axes:
+            _despine(ax)
+        fig.tight_layout()
+        _footnote(fig, features.index,
+                  "Top panel is the only series usable by a strategy.")
+        fig.savefig(path)
+        plt.close(fig)
+    return path
+
+
 def fig_forecasts_vs_realized(
     forecasts: pd.DataFrame, asset: str, path: Path
 ) -> Path:
