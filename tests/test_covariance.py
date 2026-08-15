@@ -58,6 +58,39 @@ def test_ewma_covariance_is_psd_and_weighted(window):
     assert not np.allclose(cov, fast)
 
 
+def test_ewma_effective_sample_size_formula():
+    """The weight-based n_eff for geometric weights is (1+l)/(1-l).
+
+    Pins the corrected figure used in the Phase 7 report: at lambda 0.94
+    n_eff is ~32.3 with an ~11.2-day half-life, NOT the 1/(1-lambda)
+    ~16.7 decay heuristic.
+    """
+    lam = 0.94
+    weights = lam ** np.arange(100_000)
+    weights /= weights.sum()
+    n_eff = weights.sum() ** 2 / (weights**2).sum()
+    assert n_eff == pytest.approx((1 + lam) / (1 - lam), rel=1e-6)
+    assert n_eff == pytest.approx(32.33, abs=0.05)
+    half_life = np.log(0.5) / np.log(lam)
+    assert half_life == pytest.approx(11.2, abs=0.1)
+
+
+def test_a1_shrinkage_thresholds_are_not_symmetric():
+    """Larger kappa means MORE shrinkage toward Ledoit-Wolf.
+
+    Pins the corrected Phase 7 statement: at the minimum observed
+    n_eff the kappa=120 case is materially different from kappa=60.
+    """
+    n_eff = 436.0
+    alphas = {k: n_eff / (n_eff + k) for k in (30, 60, 120)}
+    assert alphas[30] > alphas[60] > alphas[120]
+    assert alphas[30] == pytest.approx(0.9356, abs=1e-4)
+    assert alphas[60] == pytest.approx(0.8790, abs=1e-4)
+    assert alphas[120] == pytest.approx(0.7842, abs=1e-4)
+    # The 60 -> 120 move is a material change, not a negligible one.
+    assert alphas[60] - alphas[120] > 0.09
+
+
 def test_ledoit_wolf_is_well_conditioned(window):
     lw, intensity = cv.ledoit_wolf_covariance(window)
     sample = cv.sample_covariance(window)

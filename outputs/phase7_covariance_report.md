@@ -43,11 +43,17 @@ Three findings:
 
 **EWMA is by far the worst-conditioned estimator**, averaging 2.4× the
 Ledoit-Wolf condition number and peaking above 500. At λ = 0.94 the
-effective memory is roughly 1/(1−λ) ≈ 17 observations for a 5×5 matrix,
-so the estimate is close to rank-deficient. This is a concrete argument
-against feeding a raw EWMA covariance to an optimizer, and it is
-consistent with the Phase 4 finding that the equity block is highly
-collinear (full-sample correlation condition number 46.5).
+weights have a **half-life of approximately 11 trading days and a
+weight-based effective sample size of (1+λ)/(1−λ) ≈ 32 observations**,
+which remains relatively small for estimating a five-asset covariance
+matrix (15 free parameters). This is a concrete argument against
+feeding a raw EWMA covariance to an optimizer, and it is consistent
+with the Phase 4 finding that the equity block is highly collinear
+(full-sample correlation condition number 46.5).
+
+(The quantity 1/(1−λ) ≈ 16.7 sometimes quoted here is a decay-memory
+heuristic, not the formal effective sample size; the weight-based
+formula above is the correct one and is what the 32 refers to.)
 
 **Ledoit-Wolf improves on the sample matrix at every origin**, as the
 estimator is designed to. The improvement is modest (48.2 → 44.6 mean)
@@ -73,12 +79,25 @@ mechanism the shrinkage rule exists to control.
 
 Effective sample sizes never approach the 60-observation threshold, so
 alpha stays near 1 and the shrinkage moves the state covariances only
-slightly toward unconditional (state 1 mean condition 61.4 → 60.6).
-**The rule is therefore close to inactive on this data**: it is
-insurance against a short or rare state, not a driver of the results.
-The A1 robustness thresholds (30 and 120) will move alpha even less,
-which the robustness section should state plainly rather than present
-as a meaningful sensitivity.
+slightly toward unconditional at the primary threshold (state 1 mean
+condition 61.4 → 60.6). At κ = 60 the rule is therefore close to
+inactive on this data: it is insurance against a short or rare state
+rather than a driver of the results.
+
+**The A1 robustness thresholds are not symmetric, and κ = 120 is not
+negligible.** Since `alpha = n_eff / (n_eff + κ)`, a larger κ means
+*more* shrinkage toward Ledoit-Wolf:
+
+| n_eff | κ = 30 | κ = 60 (primary) | κ = 120 |
+|---|---|---|---|
+| 436 (minimum observed, state 1) | 0.936 | 0.879 | **0.784** |
+| 1,181 (mean, state 1) | 0.975 | 0.952 | 0.908 |
+
+At the minimum effective sample size the state estimate's weight falls
+from 0.879 to 0.784 when κ moves from 60 to 120 — a materially larger
+pull toward the unconditional matrix. The κ = 120 case may therefore
+produce a visible sensitivity and **must not be dismissed in advance**;
+the robustness section will report its outcome from generated output.
 
 ## 4. The A3 assumption, now measured
 
