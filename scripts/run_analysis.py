@@ -36,7 +36,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=str(PROJECT_ROOT / "config" / "config.yaml"))
     parser.add_argument(
-        "--phase", choices=["4", "5", "6", "7", "8", "all"], default="all"
+        "--phase", choices=["4", "5", "6", "7", "8", "9", "all"], default="all"
     )
     args = parser.parse_args()
 
@@ -64,6 +64,8 @@ def main() -> None:
         run_phase7(config, plan, prices, macro)
     if args.phase in ("8", "all"):
         run_phase8(config, plan, prices, macro)
+    if args.phase in ("9", "all"):
+        run_phase9(config, plan, prices)
 
 
 def run_phase4(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFrame) -> None:
@@ -594,6 +596,113 @@ def run_phase8(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFra
     )
     print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
     print("Phase 8 complete. Targets only: no returns, costs, or performance examined.")
+
+
+def run_phase9(config: dict, plan: dict, prices: pd.DataFrame) -> None:
+    """Walk-forward accounting: drift, trades, costs, gross and net returns.
+
+    Amendment A4 conventions: entry from 100% cash, daily drift, cost on
+    the full trade sum, multiplicative net-return identity. No Sharpe,
+    drawdown, ranking, or selection is computed here.
+    """
+    from src import backtest as bt
+    from src import optimization as opt
+
+    # A4(d): accounting uses SIMPLE returns.
+    daily_returns = prices.pct_change().iloc[1:]
+    assets = list(prices.columns)
+
+    weights_path = PROJECT_ROOT / "outputs" / "strategies" / "target_weights.parquet"
+    audit_path = PROJECT_ROOT / "outputs" / "strategies" / "optimizer_audit.csv"
+    if not weights_path.exists():
+        raise SystemExit("Run Phase 8 first: target_weights.parquet is missing.")
+    targets_long = pd.read_parquet(weights_path)
+    targets_long["date"] = pd.to_datetime(targets_long["date"])
+    optimizer_audit = pd.read_csv(audit_path, parse_dates=["date"])
+
+    signal_dates = pd.DatetimeIndex(sorted(targets_long["date"].unique()))
+    execution_map = bt.execution_dates_for(signal_dates, daily_returns.index)
+    print(f"\nPhase 9: accounting for {len(opt.STRATEGIES)} strategies, "
+          f"{len(execution_map)} executions")
+    print(f"  first signal {signal_dates[0].date()} -> first execution "
+          f"{execution_map[signal_dates[0]].date()} (entry from 100% cash)")
+
+    targets_by_strategy: dict[str, dict[pd.Timestamp, np.ndarray | None]] = {}
+    for strategy in opt.STRATEGIES:
+        subset = targets_long[targets_long["strategy"] == strategy]
+        wide = subset.pivot(index="date", columns="asset", values="weight")
+        failures = set(
+            optimizer_audit.loc[
+                (optimizer_audit["strategy"] == strategy)
+                & optimizer_audit["fallback_requested"], "date"
+            ]
+        )
+        mapping: dict[pd.Timestamp, np.ndarray | None] = {}
+        for signal, execution in execution_map.items():
+            if signal in failures or signal not in wide.index:
+                mapping[execution] = None          # no trade (A4 / Phase 8 policy)
+            else:
+                mapping[execution] = wide.loc[signal, assets].to_numpy()
+        targets_by_strategy[strategy] = mapping
+
+    cfg = bt.BacktestConfig(
+        cost_bps_scenarios=tuple(float(b) for b in config["backtest"]["transaction_cost_bps"]),
+        main_cost_bps=float(config["backtest"]["main_cost_bps"]),
+    )
+    results = bt.run_backtest(
+        daily_returns, targets_by_strategy, cfg,
+        signal_dates={v: k for k, v in {s: e for s, e in execution_map.items()}.items()},
+    )
+
+    out_dir = PROJECT_ROOT / "outputs" / "backtests"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    artifacts: list[Path] = []
+
+    file_map = {
+        "pretrade_weights": "pretrade_weights.parquet",
+        "posttrade_weights": "posttrade_weights.parquet",
+        "trades": "trades.parquet",
+        "turnover": "turnover.parquet",
+        "gross_returns": "gross_returns.parquet",
+        "audit": "accounting_audit.parquet",
+    }
+    for key, filename in file_map.items():
+        path = out_dir / filename
+        results[key].to_parquet(path, index=False)
+        artifacts.append(path)
+        print(f"  backtests {filename}  ({len(results[key])} rows)")
+
+    costs_only = results["audit"][
+        ["date", "strategy", "cost_bps", "cost_fraction", "full_trade_sum"]
+    ]
+    cpath = out_dir / "transaction_costs.parquet"
+    costs_only.to_parquet(cpath, index=False)
+    artifacts.append(cpath)
+    print(f"  backtests {cpath.name}  ({len(costs_only)} rows)")
+
+    for bps in cfg.cost_bps_scenarios:
+        key = f"net_returns_{int(bps)}bps"
+        path = out_dir / f"{key}.parquet"
+        results[key].to_parquet(path, index=False)
+        artifacts.append(path)
+        print(f"  backtests {path.name}")
+
+    max_identity_error = float(results["audit"]["wealth_identity_error"].max())
+    print(f"  max wealth identity error: {max_identity_error:.3e}")
+
+    manifest_path = eda.write_phase_manifest(
+        artifacts, PROJECT_ROOT, SNAPSHOT_MANIFEST,
+        PROJECT_ROOT / "outputs" / "phase9_manifest.json",
+        phase="9-accounting",
+        note=(
+            "Portfolio accounting only: drifted holdings, trades, turnover, "
+            "costs, gross and net returns. No Sharpe ratio, drawdown, "
+            "cumulative-return ranking, or strategy selection was computed "
+            "or examined."
+        ),
+    )
+    print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
+    print("Phase 9 complete. Accounting only: no performance statistics examined.")
 
 
 if __name__ == "__main__":

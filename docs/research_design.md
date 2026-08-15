@@ -538,3 +538,70 @@ than an assertion.
 
 Adopted before any covariance matrix, eigenvalue, weight, or return had
 been computed.
+
+### Amendment A4 — 2026-08-15 (no portfolio return had been computed)
+
+**Initial entry and multiplicative cost accounting.**
+
+Two accounting conventions the frozen plan left implicit, fixed before
+Phase 9 generated any return.
+
+**(a) Initial portfolio entry.** At the first execution date every
+strategy begins from 100% cash immediately before trading:
+
+```
+w_0^-      = (0, 0, 0, 0, 0)
+TradeSum_0 = sum_i |w_0,i^target - 0| = 1
+```
+
+At 10 bps every fully invested strategy therefore pays a **10 bps entry
+cost**. This is identical across strategies and prevents silently
+granting cost-free initial positions. No return accrues before the
+first execution. Audit fields `initial_entry`, `pretrade_cash_weight`,
+and `full_trade_sum` record it.
+
+**(b) Multiplicative cost and return timing.** For an execution at the
+close of date `t`:
+
+1. old holdings earn the close-to-close return ending at `t`;
+2. pre-trade weights are computed **after** that return;
+3. trades occur at that close;
+4. costs are deducted from pre-trade wealth;
+5. new weights begin earning from `t -> t+1`.
+
+The accounting identity is multiplicative, never additive:
+
+```
+V_t^-       = V_{t-1}^+ (1 + r_t^gross)
+TC_t        = c * sum_i |w_{t,i}^target - w_{t,i}^-|
+V_t^+       = V_t^- (1 - TC_t)
+1 + r_t^net = (1 + r_t^gross)(1 - TC_t)
+```
+
+`net = gross - cost` is **not** used even though the difference is
+numerically small; the audit records `wealth_identity_error` so the
+identity is verified rather than assumed.
+
+**(c) Daily drift.** Pre-trade weights come from applying the drift
+recurrence **every trading day**, not once per month from cumulative
+returns:
+
+```
+w_{i,t}^- = w_{i,t-1} (1 + r_{i,t}) / sum_j w_{j,t-1} (1 + r_{j,t})
+```
+
+so stored daily holdings reconcile exactly with the return series.
+
+**(d) Returns convention.** Phase 9 accounting uses **simple** returns,
+because weight drift and wealth compounding are multiplicative in
+simple returns. Phases 5-8 use log returns for volatility and
+covariance estimation, which is standard and unaffected.
+
+**(e) Cost independence of holdings.** Costs are applied as a wealth
+multiplier and never alter the weight vector or the targets, so the
+holdings path and gross returns are identical across all cost
+scenarios. Phase 9 computes the weight path once and applies each cost
+level to it, making this property structural rather than merely tested.
+
+Adopted before any portfolio return, cost, turnover, or wealth path had
+been computed.

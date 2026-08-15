@@ -122,6 +122,13 @@ costs:
   main_bps: 10
   sensitivity_bps: [0, 5, 20]
   store_gross_costs_net_separately: true
+  # Amendment A4
+  initial_entry_from_cash: true          # w^- = 0 at first execution; trade sum = 1
+  accounting_identity: "1 + r_net = (1 + r_gross) * (1 - TC)"
+  additive_cost_subtraction: false       # net = gross - cost is NOT used
+  drift_frequency: daily                 # recurrence applied every trading day
+  returns_convention: simple             # log returns remain for estimation only
+  costs_alter_holdings: false            # weight path identical across cost levels
 
 inference:
   bootstrap: stationary_politis_romano
@@ -197,3 +204,14 @@ amendments:
       - "main mixture = sum_k pbar_k C_k (within-state only); documented as assuming common conditional means"
       - "robustness case total_covariance_mixture adds the between-state term (mu_k - mubar)(mu_k - mubar)'"
       - "every rebalance reports the relative Frobenius norm of the omitted between-state term"
+  A4:
+    date: "2026-08-15"
+    results_seen: false          # no portfolio return had been computed
+    reason: "initial-entry and cost-accounting conventions were implicit in the frozen plan"
+    changes:
+      - "first execution starts from 100% cash: pretrade weights zero, trade sum 1, entry cost c for every strategy"
+      - "no return accrues before the first execution"
+      - "multiplicative identity 1+r_net = (1+r_gross)(1-TC); additive subtraction not used"
+      - "drift recurrence applied every trading day, not once per month"
+      - "Phase 9 accounting uses simple returns (log returns remain for estimation)"
+      - "holdings and gross returns identical across cost scenarios by construction"
