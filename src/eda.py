@@ -347,11 +347,16 @@ def subperiod_summaries(
 # Provenance
 # ---------------------------------------------------------------------------
 
-def write_eda_manifest(
+def write_phase_manifest(
     output_paths: list[Path],
     project_root: Path,
     snapshot_manifest_path: Path,
     out_path: Path,
+    phase: str = "4-eda",
+    note: str = (
+        "Descriptive analysis only. No volatility model, HMM, portfolio "
+        "optimization, or backtest was estimated or examined in Phase 4."
+    ),
 ) -> Path:
     """Record git commit, config hash, snapshot hash, and artifact hashes."""
     git_commit = subprocess.run(
@@ -362,16 +367,13 @@ def write_eda_manifest(
     for name in ("config.yaml", "analysis_plan.yaml"):
         config_hash.update((project_root / "config" / name).read_bytes())
     manifest = {
-        "phase": "4-eda",
+        "phase": phase,
         "created_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "git_commit": git_commit,
         "config_sha256": config_hash.hexdigest(),
         "data_snapshot_manifest": snapshot_manifest_path.name,
         "data_snapshot_sha256": sha256_of(snapshot_manifest_path),
-        "note": (
-            "Descriptive analysis only. No volatility model, HMM, portfolio "
-            "optimization, or backtest was estimated or examined in Phase 4."
-        ),
+        "note": note,
         "artifacts": {
             str(p.relative_to(project_root)).replace("\\", "/"): sha256_of(p)
             for p in output_paths
@@ -379,3 +381,7 @@ def write_eda_manifest(
     }
     out_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return out_path
+
+
+# Backward-compatible alias (Phase 4 call sites and tests)
+write_eda_manifest = write_phase_manifest

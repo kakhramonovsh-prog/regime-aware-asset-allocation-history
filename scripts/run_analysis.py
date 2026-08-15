@@ -1,15 +1,16 @@
-"""Run the analysis pipeline. Currently implemented: Phase 4 (EDA).
+"""Run the analysis pipeline. Implemented: Phase 4 (EDA), Phase 5
+(volatility forecasting).
 
 Usage::
 
-    python scripts/run_analysis.py [--config config/config.yaml]
+    python scripts/run_analysis.py [--phase {4,5,all}] [--config ...]
 
-Phase 4 refuses to run unless every data file on disk matches the
-frozen SHA-256 snapshot manifest, and it writes an EDA manifest tying
-every artifact to the git commit, config hash, and data hashes.
+Every phase refuses to run unless the data on disk matches the frozen
+SHA-256 snapshot manifest, and writes a provenance manifest tying every
+artifact to the git commit, config hash, and data hashes.
 
-Descriptive only: no volatility model, HMM, optimization, or backtest
-is estimated here. Phases 5-7 will extend this script.
+Phase 5 estimates volatility models only (through each rebalance date);
+no portfolio returns, regime model, or strategy selection is computed.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ import pandas as pd  # noqa: E402
 import yaml  # noqa: E402
 
 from src import data_loader, eda, preprocessing as prep, visualization as viz  # noqa: E402
+from src import volatility as vol  # noqa: E402
 
 SNAPSHOT_MANIFEST = PROJECT_ROOT / "data" / "snapshots" / "manifest_2026-08-06.json"
 
@@ -32,6 +34,7 @@ SNAPSHOT_MANIFEST = PROJECT_ROOT / "data" / "snapshots" / "manifest_2026-08-06.j
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=str(PROJECT_ROOT / "config" / "config.yaml"))
+    parser.add_argument("--phase", choices=["4", "5", "all"], default="all")
     args = parser.parse_args()
 
     config = data_loader.load_config(args.config)
@@ -47,6 +50,14 @@ def main() -> None:
     processed = PROJECT_ROOT / config["data"]["processed_dir"]
     prices = pd.read_csv(processed / "prices.csv", index_col="Date", parse_dates=True)
     macro = pd.read_csv(processed / "macro.csv", index_col="Date", parse_dates=True)
+
+    if args.phase in ("4", "all"):
+        run_phase4(config, plan, prices, macro)
+    if args.phase in ("5", "all"):
+        run_phase5(config, plan, prices)
+
+
+def run_phase4(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFrame) -> None:
     raw_dir = PROJECT_ROOT / config["data"]["raw_dir"]
     raw_prices = data_loader.load_raw_prices(raw_dir, list(config["data"]["tickers"]))
     raw_macro = data_loader.load_raw_macro(raw_dir, list(config["data"]["fred_series"]))
@@ -110,13 +121,87 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Provenance manifest
     # ------------------------------------------------------------------
-    manifest_path = eda.write_eda_manifest(
+    manifest_path = eda.write_phase_manifest(
         artifacts, PROJECT_ROOT, SNAPSHOT_MANIFEST,
         PROJECT_ROOT / "outputs" / "eda_manifest.json",
     )
     print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
     print("Phase 4 complete. Descriptive analysis only: no volatility model, "
           "HMM, portfolio optimization, or backtest was estimated or examined.")
+
+
+def run_phase5(config: dict, plan: dict, prices: pd.DataFrame) -> None:
+    """Volatility forecasting per the frozen Phase 5 specification."""
+    returns = prep.log_returns(prices)
+    cfg = vol.VolatilityConfig(
+        hist_window=config["volatility_models"]["hist_window_days"],
+        ewma_lambda=config["volatility_models"]["ewma_lambda"],
+        min_observations=plan["volatility"]["min_observations"],
+        variance_floor_daily=float(plan["volatility"]["variance_floor_daily"]),
+    )
+    n_dates = len(vol.month_end_rebalance_dates(returns.index, cfg.min_observations))
+    print(f"\nPhase 5: fitting 3 models x {len(returns.columns)} assets x "
+          f"{n_dates} month-end origins (GARCH refits take a few minutes)...")
+
+    forecasts = vol.build_volatility_forecasts(returns, cfg)
+
+    forecasts_dir = PROJECT_ROOT / "outputs" / "forecasts"
+    tables_dir = PROJECT_ROOT / "outputs" / "tables"
+    figures_dir = PROJECT_ROOT / "outputs" / "figures"
+    forecasts_dir.mkdir(parents=True, exist_ok=True)
+    artifacts: list[Path] = []
+
+    fpath = forecasts_dir / "volatility_forecasts.parquet"
+    forecasts.to_parquet(fpath, index=False)
+    artifacts.append(fpath)
+    print(f"  forecasts {fpath.name}  ({len(forecasts)} rows)")
+
+    losses = vol.loss_table(forecasts, oos_start=plan["sample"]["oos_start"])
+    lpath = tables_dir / "volatility_loss_by_asset.csv"
+    losses.to_csv(lpath, index=False, float_format="%.6g")
+    artifacts.append(lpath)
+    print(f"  table  {lpath.name}")
+
+    comparisons = pd.concat(
+        [
+            vol.diebold_mariano(forecasts, a, b)
+            for a, b in [("ewma", "hist63"), ("garch11", "hist63"), ("garch11", "ewma")]
+        ],
+        ignore_index=True,
+    )
+    cpath = tables_dir / "forecast_comparisons.csv"
+    comparisons.to_csv(cpath, index=False, float_format="%.6g")
+    artifacts.append(cpath)
+    print(f"  table  {cpath.name}")
+
+    garch_log = forecasts[forecasts["model"] == "garch11"][
+        ["date", "asset", "horizon_days", "converged", "substituted", "floored"]
+    ]
+    gpath = tables_dir / "volatility_estimation_log.csv"
+    garch_log.to_csv(gpath, index=False)
+    artifacts.append(gpath)
+    n_sub = int(garch_log["substituted"].sum())
+    print(f"  table  {gpath.name}  (GARCH substitutions: {n_sub}/{len(garch_log)})")
+
+    fig = viz.fig_forecasts_vs_realized(
+        forecasts, "SPY", figures_dir / "forecasts_vs_realized_spy.png"
+    )
+    artifacts.append(fig)
+    print(f"  figure {fig.name}")
+
+    manifest_path = eda.write_phase_manifest(
+        artifacts, PROJECT_ROOT, SNAPSHOT_MANIFEST,
+        PROJECT_ROOT / "outputs" / "phase5_manifest.json",
+        phase="5-volatility",
+        note=(
+            "Volatility forecasting only, estimated through each rebalance "
+            "date. No portfolio returns, regime model, or strategy selection "
+            "was computed or examined. EWMA remains the portfolio-feeding "
+            "model regardless of this comparison (fixed ex ante)."
+        ),
+    )
+    print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
+    print("Phase 5 complete. No portfolio returns or strategy selection examined.")
 
 
 if __name__ == "__main__":

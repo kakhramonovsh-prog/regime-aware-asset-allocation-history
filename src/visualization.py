@@ -243,6 +243,43 @@ def fig_macro_features(macro: pd.DataFrame, slope: pd.Series, path: Path) -> Pat
     return path
 
 
+def fig_forecasts_vs_realized(
+    forecasts: pd.DataFrame, asset: str, path: Path
+) -> Path:
+    """Holding-period volatility forecasts vs realized for one asset.
+
+    Integrated variances are converted to annualized volatility percent
+    (sqrt(ivar / horizon * 252) * 100) purely for readability; losses in
+    the tables are computed on variances, not on this transform.
+    """
+    sub = forecasts[forecasts["asset"] == asset]
+    wide_f = sub.pivot(index="date", columns="model", values="forecast_ivar")
+    horizon = sub.pivot(index="date", columns="model", values="horizon_days")["ewma"]
+    realized = sub.pivot(index="date", columns="model", values="realized_ivar")["ewma"]
+
+    def to_vol(ivar: pd.Series) -> pd.Series:
+        return np.sqrt(ivar / horizon * 252) * 100
+
+    model_colors = {"hist63": SERIES_1, "ewma": SERIES_2, "garch11": "#199e70"}
+    model_labels = {"hist63": "Historical 63d", "ewma": "EWMA (0.94)", "garch11": "GARCH(1,1)"}
+    with plt.rc_context(_RC):
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(realized.index, to_vol(realized), color=INK, linewidth=1.3,
+                label="Realized (next period)")
+        for model in ("hist63", "ewma", "garch11"):
+            ax.plot(wide_f.index, to_vol(wide_f[model]), color=model_colors[model],
+                    linewidth=1.0, alpha=0.9, label=model_labels[model])
+        ax.set_title(f"{asset}: holding-period volatility forecasts vs realized")
+        ax.set_ylabel("Annualized volatility (%)")
+        _despine(ax)
+        ax.legend(loc="upper right", ncols=2)
+        _footnote(fig, wide_f.index,
+                  "Forecasts formed at each month-end from data through that date only.")
+        fig.savefig(path)
+        plt.close(fig)
+    return path
+
+
 def fig_vix_vs_realized(vix: pd.Series, rv: pd.Series, path: Path) -> Path:
     """VIX vs 21-day realized volatility: time overlay and scatter.
 
