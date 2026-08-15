@@ -35,7 +35,9 @@ SNAPSHOT_MANIFEST = PROJECT_ROOT / "data" / "snapshots" / "manifest_2026-08-06.j
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=str(PROJECT_ROOT / "config" / "config.yaml"))
-    parser.add_argument("--phase", choices=["4", "5", "6", "7", "all"], default="all")
+    parser.add_argument(
+        "--phase", choices=["4", "5", "6", "7", "8", "all"], default="all"
+    )
     args = parser.parse_args()
 
     config = data_loader.load_config(args.config)
@@ -60,6 +62,8 @@ def main() -> None:
         run_phase6(config, plan, prices, macro)
     if args.phase in ("7", "all"):
         run_phase7(config, plan, prices, macro)
+    if args.phase in ("8", "all"):
+        run_phase8(config, plan, prices, macro)
 
 
 def run_phase4(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFrame) -> None:
@@ -429,18 +433,21 @@ def run_phase7(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFra
     artifacts.append(apath)
     print(f"  covariance {apath.name}  ({len(audit)} rows)")
 
-    # Consumed matrices, long format, for Phase 8.
+    # Matrices exported for Phase 8, long format. Strategies consume
+    # these directly so no downstream step re-estimates a covariance on
+    # a different window.
     rows = []
     assets = list(prices.columns)
-    for date, matrix in consumed.items():
-        for i, a in enumerate(assets):
-            for j, b in enumerate(assets):
-                rows.append({"date": date, "asset_i": a, "asset_j": b,
-                             "covariance": float(matrix[i, j])})
+    for date, by_name in consumed.items():
+        for name, matrix in by_name.items():
+            for i, a in enumerate(assets):
+                for j, b in enumerate(assets):
+                    rows.append({"date": date, "matrix": name, "asset_i": a,
+                                 "asset_j": b, "covariance": float(matrix[i, j])})
     cpath = cov_dir / "consumed_covariances.parquet"
     pd.DataFrame(rows).to_parquet(cpath, index=False)
     artifacts.append(cpath)
-    print(f"  covariance {cpath.name}  ({len(consumed)} matrices)")
+    print(f"  covariance {cpath.name}  ({len(consumed)} dates x 3 matrices)")
 
     # Conditioning summary by estimator.
     summary = audit.groupby("estimator").agg(
@@ -476,6 +483,117 @@ def run_phase7(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFra
     )
     print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
     print("Phase 7 complete. No weights or portfolio returns examined.")
+
+
+def run_phase8(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFrame) -> None:
+    """Target-weight construction for the six-strategy ladder.
+
+    Emits target weights only: no return, cost, turnover, or wealth is
+    computed here. Failed optimizations emit no weights and set
+    fallback_requested, which Phase 9 interprets as "no trade".
+    """
+    from src import covariance as cv
+    from src import optimization as opt
+    from src import regimes as rg
+
+    returns = prep.log_returns(prices)
+    assets = list(prices.columns)
+    rebalance_dates = rg.rebalance_origins(
+        returns.index,
+        first_signal_after=plan["sample"]["training_end"],
+        min_observations=plan["volatility"]["min_observations"],
+    )
+
+    # All covariance matrices come from the Phase 7 artifact, estimated
+    # on one window. Phase 8 never re-estimates a covariance: doing so on
+    # a different window would make the A2 fallback subtly different from
+    # the rolling-LW comparator it is defined to equal.
+    consumed_path = PROJECT_ROOT / "outputs" / "covariance" / "consumed_covariances.parquet"
+    if not consumed_path.exists():
+        raise SystemExit("Run Phase 7 first: consumed_covariances.parquet is missing.")
+    long = pd.read_parquet(consumed_path)
+
+    def _matrices(name: str) -> dict[pd.Timestamp, np.ndarray]:
+        subset = long[long["matrix"] == name]
+        out: dict[pd.Timestamp, np.ndarray] = {}
+        for date, group in subset.groupby("date"):
+            pivot = group.pivot(index="asset_i", columns="asset_j", values="covariance")
+            out[pd.Timestamp(date)] = pivot.loc[assets, assets].to_numpy()
+        return out
+
+    rolling_lw = _matrices("ledoit_wolf")
+    consumed = _matrices("consumed")
+
+    # Static target: the Ledoit-Wolf matrix at the first origin, i.e.
+    # estimated through the preregistered training end and then frozen.
+    training_origin = rebalance_dates[0]
+    static_cov = rolling_lw[training_origin]
+
+    # EWMA volatility forecasts from the Phase 5 model (lambda fixed ex
+    # ante). The recursion is seeded at the start of the return series;
+    # by the first origin the seed's weight is lambda^~1270 (~1e-34), so
+    # the window-start difference is numerically irrelevant.
+    lam = config["volatility_models"]["ewma_lambda"]
+    ewma_series = {
+        a: vol.ewma_variance_series(returns[a], lam=lam) for a in assets
+    }
+    ewma_variances = {
+        t: np.array([float(ewma_series[a].loc[t]) for a in assets])
+        for t in rebalance_dates
+    }
+
+    cfg = opt.OptimizerConfig(max_weight=config["portfolio"]["max_weight"])
+    print(f"\nPhase 8: target weights for {len(opt.STRATEGIES)} strategies "
+          f"x {len(rebalance_dates)} origins (cap {cfg.max_weight:.0%}, "
+          "60/40 benchmark cap-exempt)")
+
+    weights, audit = opt.build_strategy_targets(
+        assets, rebalance_dates, static_cov, rolling_lw, ewma_variances,
+        consumed, config["benchmark"]["weights"], cfg,
+    )
+
+    strat_dir = PROJECT_ROOT / "outputs" / "strategies"
+    strat_dir.mkdir(parents=True, exist_ok=True)
+    artifacts: list[Path] = []
+
+    wpath = strat_dir / "target_weights.parquet"
+    weights.to_parquet(wpath, index=False)
+    artifacts.append(wpath)
+    print(f"  strategies {wpath.name}  ({len(weights)} weight rows)")
+
+    apath = strat_dir / "optimizer_audit.csv"
+    audit.to_csv(apath, index=False, float_format="%.8g")
+    artifacts.append(apath)
+    n_fallback = int(audit["fallback_requested"].sum())
+    print(f"  strategies {apath.name}  ({len(audit)} rows, "
+          f"{n_fallback} fallback requests)")
+
+    summary = audit[audit["strategy"].isin(opt.OPTIMIZED)].groupby("strategy").agg(
+        n=("date", "size"),
+        solver_success_rate=("solver_success", "mean"),
+        mean_iterations=("iterations", "mean"),
+        max_constraint_violation=("constraint_violation", "max"),
+        mean_cap_binding=("cap_binding_count", "mean"),
+        fallback_requests=("fallback_requested", "sum"),
+    ).reset_index()
+    spath = strat_dir / "optimizer_summary.csv"
+    summary.to_csv(spath, index=False, float_format="%.8g")
+    artifacts.append(spath)
+    print(f"  strategies {spath.name}")
+
+    manifest_path = eda.write_phase_manifest(
+        artifacts, PROJECT_ROOT, SNAPSHOT_MANIFEST,
+        PROJECT_ROOT / "outputs" / "phase8_manifest.json",
+        phase="8-strategies",
+        note=(
+            "Target weights only. No portfolio return, transaction cost, "
+            "turnover, Sharpe ratio, or cumulative wealth was computed or "
+            "examined. Failed optimizations emit no weights and set "
+            "fallback_requested for Phase 9 to treat as no trade."
+        ),
+    )
+    print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
+    print("Phase 8 complete. Targets only: no returns, costs, or performance examined.")
 
 
 if __name__ == "__main__":

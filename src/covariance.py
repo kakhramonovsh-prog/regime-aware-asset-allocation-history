@@ -294,11 +294,16 @@ def build_covariance_panel(
     Amendment A2: when the fit is degenerate, the consumed covariance is
     the unconditional Ledoit-Wolf estimate. Routing reads guard flags
     only — no date is ever consulted.
+
+    The second return value maps each date to the matrices Phase 8 may
+    consume (``consumed``, ``ledoit_wolf``, ``regime_mixture``), all
+    estimated on this window so downstream strategies never re-derive
+    them on a different one.
     """
     from src import regimes as rg
 
     audit_rows: list[dict] = []
-    consumed: dict[pd.Timestamp, np.ndarray] = {}
+    consumed: dict[pd.Timestamp, dict[str, np.ndarray]] = {}
 
     for i, t in enumerate(rebalance_dates):
         feature_window = features.loc[:t]
@@ -364,8 +369,13 @@ def build_covariance_panel(
 
         for name, matrix in estimates.items():
             corrected, psd = enforce_psd(matrix, f"{t.date()}:{name}")
-            if name == "consumed":
-                consumed[t] = corrected
+            if name in ("consumed", "ledoit_wolf", "regime_mixture"):
+                # Exported for Phase 8 so strategies consume exactly the
+                # matrices estimated here, on this window. Recomputing
+                # them downstream on a different window would make the
+                # A2 fallback subtly different from the rolling-LW
+                # comparator it is meant to equal.
+                consumed.setdefault(t, {})[name] = corrected
             state = (
                 int(name.split("_")[1])
                 if name.startswith("state_")
