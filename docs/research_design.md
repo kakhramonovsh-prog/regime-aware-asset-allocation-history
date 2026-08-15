@@ -493,3 +493,48 @@ sample, so neither affects any result.
 the frozen robustness grid, using the original regime-conditioned
 covariance at those four dates, to show whether the conservative
 fallback materially affects conclusions.
+
+### Amendment A3 — 2026-08-15 (no covariance result had been computed)
+
+**The regime mixture covariance is a within-state mixture; the
+between-state mean term is a robustness case.**
+
+The frozen plan writes the mixture as `Σ_RA,t = Σ_k p̄_{t,k} Σ_{k,t}`
+without stating whether `Σ_{k,t}` is a centered covariance or an
+uncentered second moment. This amendment resolves the ambiguity before
+any covariance was estimated.
+
+**Main specification.** `Σ_{k,t}` is the **centered** responsibility-
+weighted covariance around its own state mean `μ_{k,t}`, and the mixture
+is the plan's formula as written:
+
+```
+Σ_RA,t = Σ_k p̄_{t,k}(H) · C_{k,t}
+```
+
+This omits the between-state mean-dispersion term and therefore
+implicitly treats the conditional means as common across states. That
+is a deliberate simplification, consistent with the frozen plan's
+prohibition on expected-return forecasting: it keeps estimated
+conditional means — the noisiest quantities in the problem — out of the
+allocation entirely. It is documented here as an assumption, not
+presented as the complete total covariance.
+
+**Robustness case `total_covariance_mixture`.** The complete law of
+total covariance, added to the frozen robustness grid:
+
+```
+μ̄_t     = Σ_k p̄_{t,k} μ_{k,t}
+Σ_RA,t  = Σ_k p̄_{t,k} [ C_{k,t} + (μ_{k,t} − μ̄_t)(μ_{k,t} − μ̄_t)ᵀ ]
+```
+
+**Reporting requirement.** Every rebalance records the Frobenius norm of
+the omitted between-state term relative to the within-state mixture, so
+the magnitude of the assumption is visible in the outputs rather than
+argued in prose. At daily frequency the term is expected to be small
+(state mean differences are order basis points while daily variances are
+order 1e-4), but that is an empirical question the audit answers rather
+than an assertion.
+
+Adopted before any covariance matrix, eigenvalue, weight, or return had
+been computed.

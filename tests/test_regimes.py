@@ -535,6 +535,44 @@ def test_a2_fallback_flag_matches_guard(regime_features):
     ).all()
 
 
+def test_a2_routing_is_flag_driven_not_date_driven():
+    """The four observed A2 dates are audit information only.
+
+    Routing must depend solely on the guard flags: a NON-A2 date with an
+    absorbing row must fall back, and an A2 date with clean flags must
+    NOT. If anyone ever hard-codes the date list into the routing, this
+    test fails.
+    """
+    absorbing_on_other_date = {
+        "absorbing_state": True, "degenerate_occupancy": False,
+        "singular_covariance": False,
+    }
+    assert rg.covariance_consumption(absorbing_on_other_date)["fallback_used"] is True
+
+    clean_on_a2_date = {
+        "absorbing_state": False, "degenerate_occupancy": False,
+        "singular_covariance": False,
+    }
+    assert rg.covariance_consumption(clean_on_a2_date)["fallback_used"] is False
+
+    # The routing function takes no date argument at all.
+    import inspect
+
+    params = inspect.signature(rg.covariance_consumption).parameters
+    assert list(params) == ["diagnostics"]
+
+
+def test_no_hardcoded_a2_dates_in_routing_source():
+    """Static check: the A2 date literals must not appear in any
+    routing code path."""
+    import inspect
+
+    source = inspect.getsource(rg.covariance_consumption)
+    source += inspect.getsource(rg.state_diagnostics)
+    for literal in ("2009-12-31", "2012-03-30", "2012-04-30", "2012-05-31"):
+        assert literal not in source
+
+
 def test_a2_symmetric_across_states():
     """An absorbing LOW-volatility state must trigger the same rule."""
     class LowAbsorbing:

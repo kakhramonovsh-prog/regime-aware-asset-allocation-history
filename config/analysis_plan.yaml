@@ -85,6 +85,16 @@ regime_covariance:
   psd_eigenvalue_floor: 1.0e-10
   # Amendment A2: degenerate fits do not supply a regime-conditioned
   # covariance; the probability itself is preserved and reported.
+  # Amendment A3: state estimators are CENTERED covariances; the main
+  # mixture is within-state only (implicitly assumes common conditional
+  # means, consistent with the no-expected-returns rule). The complete
+  # law-of-total-covariance version is a robustness case.
+  state_estimator: centered_covariance
+  mixture_formula: within_state_only
+  mixture_formula_robustness: total_covariance_with_between_state_term
+  report_omitted_between_state_norm: true
+  shrinkage_alpha: "n_eff / (n_eff + 60)  # weight ON the state estimate"
+  responsibilities_source: smoothed_from_fit_through_t
   degeneracy_fallback: unconditional_ledoit_wolf
   degeneracy_reasons: [absorbing_transition, degenerate_occupancy, singular_covariance]
   absorbing_threshold: "diag(P) >= 1 - 1e-12"
@@ -127,6 +137,7 @@ robustness_grid:
   covariance_estimators: [sample, ewma, ledoit_wolf]
   neff_thresholds: [30, 60, 120]        # Amendment A1
   degeneracy_handling: [fallback_unconditional, accept_as_estimated]  # Amendment A2
+  mixture_formulas: [within_state_only, total_covariance_with_between_state_term]  # A3
   estimation_windows: [expanding, rolling_5y]
   weight_caps: [0.30, 0.40, 0.50]
   cost_bps: [0, 5, 20]
@@ -176,3 +187,13 @@ amendments:
       - refit_until_preferred_transition_matrix
       - change_absorbing_threshold_after_seeing_results
     affected_dates: ["2009-12-31", "2012-03-30", "2012-04-30", "2012-05-31"]
+    dates_are_audit_only: true   # routing depends on guard flags, never on these dates
+  A3:
+    date: "2026-08-15"
+    results_seen: false          # no covariance matrix had been computed
+    reason: "frozen plan did not state whether state estimators are centered covariances or uncentered second moments"
+    changes:
+      - "state estimators defined as CENTERED covariances around their own state means"
+      - "main mixture = sum_k pbar_k C_k (within-state only); documented as assuming common conditional means"
+      - "robustness case total_covariance_mixture adds the between-state term (mu_k - mubar)(mu_k - mubar)'"
+      - "every rebalance reports the relative Frobenius norm of the omitted between-state term"

@@ -35,7 +35,7 @@ SNAPSHOT_MANIFEST = PROJECT_ROOT / "data" / "snapshots" / "manifest_2026-08-06.j
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=str(PROJECT_ROOT / "config" / "config.yaml"))
-    parser.add_argument("--phase", choices=["4", "5", "6", "all"], default="all")
+    parser.add_argument("--phase", choices=["4", "5", "6", "7", "all"], default="all")
     args = parser.parse_args()
 
     config = data_loader.load_config(args.config)
@@ -58,6 +58,8 @@ def main() -> None:
         run_phase5(config, plan, prices)
     if args.phase in ("6", "all"):
         run_phase6(config, plan, prices, macro)
+    if args.phase in ("7", "all"):
+        run_phase7(config, plan, prices, macro)
 
 
 def run_phase4(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFrame) -> None:
@@ -382,6 +384,98 @@ def run_phase6(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFra
     )
     print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
     print("Phase 6 complete. No covariance, optimization, or portfolio results examined.")
+
+
+def run_phase7(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFrame) -> None:
+    """Covariance estimation and conditioning diagnostics (no weights)."""
+    from src import covariance as cv
+    from src import regimes as rg
+
+    hmm_cfg = rg.HMMConfig(
+        n_states=config["regimes"]["n_states_main"],
+        n_init=config["regimes"]["n_initializations"],
+        seed_start=config["regimes"]["init_seeds_start"],
+        min_occupancy=config["regimes"]["min_state_occupancy"],
+        min_observations=plan["volatility"]["min_observations"],
+    )
+    cov_cfg = cv.CovarianceConfig(
+        ewma_lambda=config["volatility_models"]["ewma_lambda"],
+        neff_threshold=float(plan["regime_covariance"]["neff_threshold"]),
+        horizon_days=int(plan["regime_covariance"]["horizon_days"]),
+        include_between_state_term=False,   # A3: main = within-state only
+    )
+    features = rg.build_features(
+        prices, macro, macro_lag_days=config["data"]["macro_signal_lag_days"]
+    )
+    returns = prep.log_returns(prices)
+    rebalance_dates = rg.rebalance_origins(
+        returns.index,
+        first_signal_after=plan["sample"]["training_end"],
+        min_observations=hmm_cfg.min_observations,
+    )
+
+    cov_dir = PROJECT_ROOT / "outputs" / "covariance"
+    cov_dir.mkdir(parents=True, exist_ok=True)
+    artifacts: list[Path] = []
+
+    print(f"\nPhase 7: covariance estimation at {len(rebalance_dates)} origins "
+          f"({rebalance_dates[0].date()} to {rebalance_dates[-1].date()})")
+    audit, consumed = cv.build_covariance_panel(
+        returns, features, rebalance_dates, hmm_cfg, cov_cfg, verbose=True
+    )
+
+    apath = cov_dir / "covariance_audit.csv"
+    audit.to_csv(apath, index=False, float_format="%.8g")
+    artifacts.append(apath)
+    print(f"  covariance {apath.name}  ({len(audit)} rows)")
+
+    # Consumed matrices, long format, for Phase 8.
+    rows = []
+    assets = list(prices.columns)
+    for date, matrix in consumed.items():
+        for i, a in enumerate(assets):
+            for j, b in enumerate(assets):
+                rows.append({"date": date, "asset_i": a, "asset_j": b,
+                             "covariance": float(matrix[i, j])})
+    cpath = cov_dir / "consumed_covariances.parquet"
+    pd.DataFrame(rows).to_parquet(cpath, index=False)
+    artifacts.append(cpath)
+    print(f"  covariance {cpath.name}  ({len(consumed)} matrices)")
+
+    # Conditioning summary by estimator.
+    summary = audit.groupby("estimator").agg(
+        n=("date", "size"),
+        mean_cov_condition=("covariance_condition_number", "mean"),
+        max_cov_condition=("covariance_condition_number", "max"),
+        mean_corr_condition=("correlation_condition_number", "mean"),
+        max_corr_condition=("correlation_condition_number", "max"),
+        min_eigenvalue_before=("min_eigenvalue_before", "min"),
+        n_psd_corrections=("psd_correction_used", "sum"),
+        max_psd_correction=("psd_correction_magnitude", "max"),
+    ).reset_index()
+    spath = cov_dir / "conditioning_summary.csv"
+    summary.to_csv(spath, index=False, float_format="%.8g")
+    artifacts.append(spath)
+    print(f"  covariance {spath.name}")
+
+    fallbacks = audit[audit["fallback_used"]]["date"].drop_duplicates()
+    print(f"  A2 fallbacks: {len(fallbacks)} origins "
+          f"({', '.join(str(d.date()) for d in fallbacks)})")
+
+    manifest_path = eda.write_phase_manifest(
+        artifacts, PROJECT_ROOT, SNAPSHOT_MANIFEST,
+        PROJECT_ROOT / "outputs" / "phase7_manifest.json",
+        phase="7-covariance",
+        note=(
+            "Covariance estimation and conditioning diagnostics only. "
+            "All estimators use returns through the rebalance origin; "
+            "state-conditioned estimates use smoothed responsibilities "
+            "from the HMM fit through that origin. No optimizer weights "
+            "or portfolio returns were computed or examined."
+        ),
+    )
+    print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
+    print("Phase 7 complete. No weights or portfolio returns examined.")
 
 
 if __name__ == "__main__":
