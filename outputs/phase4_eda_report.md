@@ -1,8 +1,14 @@
 # Phase 4 — EDA and Data-Quality Report
 
-**Generated from:** git commit `5350b27` · config SHA-256 `54ccd33d…855d6c` ·
-data snapshot `manifest_2026-08-06.json` (SHA-256 `6ce35432…715c2`)
+**Generated from:** config SHA-256 `54ccd33d…855d6c` ·
+data snapshot `manifest_2026-08-06.json` (SHA-256 `6ce35432…715c2`) ·
+git commit per [eda_manifest.json](eda_manifest.json)
 **Run:** 2026-08-15, `python scripts/run_analysis.py`
+**Revised 2026-08-15** (documentation only, before Phase 5; tables
+unchanged): figure palette moved to darker validated steps (IEF now
+violet; all five slots ≥3:1 contrast on white), long-only covariance
+phrasing corrected in §4, overlapping-window caveat added to the
+forward-volatility correlation in §3.
 **Scope:** descriptive only. **No volatility model, HMM, portfolio
 optimization, or backtest was estimated or examined in this phase**, and
 nothing below alters the preregistered specification
@@ -104,6 +110,11 @@ Yes — material, and quantified (`vix_vs_realized_vol_stats.csv`,
   scatter (`vix_vs_realized_vol.png`) shows the familiar implied-premium
   wedge: VIX sits above realized on most days.
 
+A caveat on the 0.71: consecutive 21-day realized-volatility windows
+overlap, so the observations behind that correlation are strongly
+serially dependent. The number is **descriptive only**; no ordinary
+correlation p-value applies, and none is attached.
+
 Implication: in the 4-feature HMM, VIX and realized volatility will
 share most of their level variance, so the model may behave largely as a
 volatility classifier. This is exactly the scenario the preregistration
@@ -111,9 +122,14 @@ anticipated: the main specification keeps both features, and the
 **drop-VIX and drop-realized-vol ablations already in the frozen
 robustness grid are the designated test** of whether either feature
 carries independent regime information. The forward-looking component of
-VIX (0.71 predictive correlation) is the a-priori reason to keep it.
-No specification change is made, and none of these numbers was used to
-select features.
+VIX is the a-priori reason to keep it. No specification change is made,
+and none of these numbers was used to select features.
+
+Forward-looking realized volatility (the next-21-day series) exists
+**only** inside this descriptive statistic and in forecast-evaluation
+targets; it is not a column of any feature panel, and the Phase 6
+feature builder must pass the `assert_causal` truncation test before any
+regime is estimated.
 
 ## 4. Do ETF correlations create conditioning problems?
 
@@ -123,9 +139,11 @@ negatively correlated with equities (−0.24 to −0.28) and GLD is nearly
 orthogonal (0.06-0.21). The full-sample correlation matrix's eigenvalues
 are 2.87 / 1.18 / 0.71 / 0.18 / 0.06 (`correlation_conditioning.csv`):
 the first principal component carries 57.4% of variance and the
-**condition number is 46.5**. A minimum-variance optimizer fed the raw
-sample matrix will happily build large offsetting positions inside the
-near-collinear equity block, which is unstable out-of-sample.
+**condition number is 46.5**. Because the portfolios are long-only, the
+failure mode is not literal short-against-long offsetting: the highly
+correlated equity block can create unstable or concentrated
+minimum-variance weights, with allocations lurching between
+near-substitutes from one estimation window to the next.
 
 The preregistered design already carries the mitigations: Ledoit-Wolf
 shrinkage in the primary comparator and regime strategy, the 40% weight

@@ -3,11 +3,13 @@
 Style rules applied throughout:
 
 * One fixed color per asset across every figure (color follows the
-  entity, never position): SPY blue, QQQ orange, IWM aqua, IEF yellow,
-  GLD magenta. The 5-slot categorical palette passes colorblind-safety
-  validation (worst adjacent CVD dE 9.1); the three lower-contrast
-  slots are mitigated with legends, direct end labels, and CSV table
-  views of every plotted series.
+  entity, never position): SPY blue, QQQ orange, IWM dark aqua, IEF
+  violet, GLD dark magenta. This 5-slot set passes every palette check
+  on the white figure surface (lightness band, chroma floor, adjacent
+  CVD separation worst dE 8.4, normal-vision floor 27.1, and >= 3:1
+  contrast for all five slots; validated with the palette script, not
+  by eye). Legends plus CSV table views of every plotted series remain
+  as secondary encoding.
 * Single y-axis per panel, always. Recessive hairline grid, muted axis
   ink, no chartjunk.
 * Every figure states its sample range in a footnote.
@@ -28,9 +30,9 @@ import pandas as pd
 ASSET_COLORS = {
     "SPY": "#2a78d6",  # blue
     "QQQ": "#eb6834",  # orange
-    "IWM": "#1baf7a",  # aqua
-    "IEF": "#eda100",  # yellow
-    "GLD": "#e87ba4",  # magenta
+    "IWM": "#199e70",  # dark aqua
+    "IEF": "#4a3aa7",  # violet
+    "GLD": "#d55181",  # dark magenta
 }
 SERIES_1 = "#2a78d6"
 SERIES_2 = "#eb6834"

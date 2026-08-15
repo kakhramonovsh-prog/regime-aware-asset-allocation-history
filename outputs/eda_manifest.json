@@ -1,7 +1,7 @@
 {
   "phase": "4-eda",
-  "created_at_utc": "2026-08-15T21:27:41+00:00",
-  "git_commit": "5350b275dfcf9eedd48947d0d7726637831f4883",
+  "created_at_utc": "2026-08-15T21:39:14+00:00",
+  "git_commit": "dcdf0516089af0f70799c3497576922730404a9d",
   "config_sha256": "54ccd33d322e7924c9cf9f3d480c0cdf20907b31594e14ace786e9b9bc855d6c",
   "data_snapshot_manifest": "manifest_2026-08-06.json",
   "data_snapshot_sha256": "6ce35432bae2969dc7598e150f877a3faec5a4453e9da77077b71fb3736715c2",
@@ -17,11 +17,11 @@
     "outputs/tables/macro_feature_correlations.csv": "0bd4ae11c6ab23a3fd947ca79d671dac6e311eaea4c17375e9567360a1781a57",
     "outputs/tables/vix_vs_realized_vol_stats.csv": "8fb3b3519818363474746e53714bdc7f7e4b846e03a7dfb997710293ebd01f55",
     "outputs/tables/subperiod_summaries.csv": "66d1efa532bbaea1f46a6ef3814b268904c98c11e2c3d7ab06b3c649467b9766",
-    "outputs/figures/normalized_prices.png": "6422f060d4c4dd9d0a150839008fd7dbf1db792532c71bf54e28e2732d4f2a49",
-    "outputs/figures/return_distributions.png": "b93eaabac41b73b88f7ed51f1134970770c972b429b3725435b3b54a0abc59b3",
-    "outputs/figures/rolling_volatility.png": "83bff1656cc599b446eb13e44009fb70d65845654523937dee41c2a08273261d",
-    "outputs/figures/rolling_correlations.png": "b34c5e39f07d427728cd6e4abe51c9d95899d0cbf2497664f50320986a8fdf1a",
-    "outputs/figures/drawdowns.png": "2beb63bb900c0b9e3e9ff81088d040cbef448922f16e1998d2271abf4870e1fc",
+    "outputs/figures/normalized_prices.png": "1d761423179beaa7d2b67e1f3590f6d8fe620ee7d6be6665c91f539efe052e47",
+    "outputs/figures/return_distributions.png": "c9530703dcc3908134f5069844b6fc9ca1e6c5367ae65444d4f69eb528f9dd57",
+    "outputs/figures/rolling_volatility.png": "20ec14b76a9245920452158eb3888310269360caf4db101eb220807176ce7ed1",
+    "outputs/figures/rolling_correlations.png": "7af34d083abe6d7322d850783a6567a27a7bcd421e9dac10fae0784c8b04bcd8",
+    "outputs/figures/drawdowns.png": "47b90008205bbcc7a1c6ae3d6cd051e977dde5a24a397d4d41eb4991779e9a2e",
     "outputs/figures/macro_features.png": "07120bb97cd6f429e19c6474e71a77ddb7df476683c92d7fbb5b6cb0172cdb0e",
     "outputs/figures/vix_vs_realized_vol.png": "a0221041c7a94e0e0565a672bb1906ae38b626a790b188e306eef5e68746d4b0"
   }
