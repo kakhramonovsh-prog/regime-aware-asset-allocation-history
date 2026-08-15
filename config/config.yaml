@@ -48,6 +48,10 @@ data:
   # but a gap longer than this signals a data problem and raises an error.
   macro_ffill_limit: 5
 
+  # FRED series are lagged one extra trading day before entering any
+  # trading signal (H.15 publication lag; see docs/research_design.md §3).
+  macro_signal_lag_days: 1
+
 preprocessing:
   vol_windows: [21, 63]        # trading days (~1 month, ~3 months)
   corr_window: 63
@@ -59,21 +63,39 @@ benchmark:
     SPY: 0.60
     IEF: 0.40
 
+# The frozen values below mirror config/analysis_plan.yaml (preregistered,
+# tag v0.2.0-preregistered). tests/test_analysis_plan.py enforces the match.
+
 volatility_models:            # Phase 5 (not yet implemented)
   ewma_lambda: 0.94           # RiskMetrics daily decay
   garch: { p: 1, q: 1 }
+  hist_window_days: 63
+  portfolio_model: ewma_lambda_094   # fixed ex ante
 
 regimes:                       # Phase 6 (not yet implemented)
   n_states_main: 2
   n_states_alt: 3
-  features: [market_return, market_vol, vix, yield_slope]
+  features: [mkt_log_return, realized_vol_21d, log_vix_lag1, yield_slope_lag1]
+  n_initializations: 16
+  init_seeds_start: 42         # seeds 42..57
+  min_state_occupancy: 0.05
 
 portfolio:                     # Phase 8 (not yet implemented)
   max_weight: 0.40
   allow_short: false
+  fully_invested: true
+  strategies:                  # ablation ladder (docs/research_design.md §7)
+    - equal_weight
+    - static_6040_monthly
+    - static_minvar_training_window
+    - rolling_lw_minvar
+    - vol_scaled_minvar_ewma
+    - regime_minvar
 
 backtest:                      # Phase 9 (not yet implemented)
   rebalance_frequency: monthly
-  initial_training_years: 5
+  training_end: "2009-12-31"
+  oos_start: "2010-01-01"
+  execution_lag_days: 1        # signal at close t, trade at close t+1
   transaction_cost_bps: [0, 5, 10, 20]
   main_cost_bps: 10

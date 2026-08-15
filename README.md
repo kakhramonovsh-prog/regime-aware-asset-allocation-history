@@ -2,15 +2,34 @@
 
 **Evidence from U.S. Financial Markets**
 
-Empirical research project. Status: **data and testing infrastructure
-complete; modelling phases in progress.** No results are reported yet,
-and none will be reported until the out-of-sample experiments have run.
+Empirical research project. Status: **data pipeline verified and
+empirical design preregistered; modelling phases in progress.** No
+results are reported yet, and none will be reported until the
+out-of-sample experiments have run.
 
 ## Research question
 
-Can regime identification and volatility-aware portfolio construction
-improve out-of-sample risk-adjusted performance relative to
-conventional static allocations (equal weight, 60/40)?
+Does conditioning a risk-based allocation on latent market states
+improve out-of-sample risk-adjusted performance, beyond what dynamic
+covariance estimation alone delivers?
+
+## Preregistered design
+
+The full empirical design was frozen **before any model was estimated**
+(git tag `v0.2.0-preregistered`): hypothesis, primary comparison,
+sample split, information/execution timeline, model specifications,
+cost convention, and the complete robustness grid.
+
+- Prose: [docs/research_design.md](docs/research_design.md)
+- Machine-readable: [config/analysis_plan.yaml](config/analysis_plan.yaml)
+- Enforcement: `tests/test_analysis_plan.py` fails if the runtime
+  configuration drifts from the frozen plan.
+
+The primary comparison is regime-aware minimum variance against
+**rolling Ledoit-Wolf minimum variance** (the closest non-regime
+strategy), net of 10 bps costs, so any headline improvement is
+attributable to regime conditioning rather than to dynamic covariance
+estimation. Equal weight and 60/40 remain as economic benchmarks.
 
 ## Motivation
 
@@ -30,22 +49,24 @@ walk-forward design built to exclude look-ahead bias.
    GARCH(1,1), compared out-of-sample with MAE, RMSE, and QLIKE.
 2. **Regime identification.** Gaussian Hidden Markov Model on
    standardized market features (market return, realized volatility,
-   VIX, yield-curve slope). Two states in the main specification; a
-   three-state alternative is evaluated with AIC/BIC, stability, and
-   economic interpretability. Estimation is expanding-window: the
-   regime used at rebalance date *t* is inferred from data through *t*
-   only.
+   lagged VIX, lagged yield-curve slope). Two states in the main
+   specification; three states as robustness. Estimation is
+   expanding-window, and only **filtered** probabilities (computed from
+   data through the rebalance date) ever feed a trading decision;
+   smoothed full-sample probabilities appear solely in labeled ex-post
+   descriptive figures.
 3. **Covariance estimation.** Sample, exponentially weighted, and
    Ledoit-Wolf shrinkage, with eigenvalue/condition-number diagnostics.
-4. **Portfolio strategies.** Equal weight, 60/40, static and rolling
-   minimum variance, volatility targeting, and regime-aware minimum
-   variance. Long-only, fully invested, 40% max weight per asset.
-   Risk-based allocation is the principal specification because
-   expected-return estimates are too noisy to be the backbone of the
-   main result.
-5. **Walk-forward backtest.** Monthly rebalancing; every model is
-   re-estimated at each rebalance date on data available at that date.
-   Transaction costs of 0, 5, 10, and 20 bps on turnover.
+4. **Portfolio strategies (ablation ladder).** Equal weight → 60/40 →
+   static minimum variance → rolling Ledoit-Wolf minimum variance →
+   volatility-scaled minimum variance → regime-aware minimum variance,
+   so each rung isolates one design ingredient. Long-only, fully
+   invested, 40% max weight, no expected-return forecasting.
+5. **Walk-forward backtest.** Monthly rebalancing with a strict
+   timeline: signal at month-end close *t*, execution at the close of
+   *t+1*, new weights earn returns from *t+1* to *t+2* onward, costs
+   charged at execution. FRED series are lagged one extra trading day
+   in signals. Costs of 10 bps (primary) with 0/5/20 bps sensitivity.
 6. **Inference.** Bootstrap confidence intervals, HAC standard errors,
    and Sharpe-difference tests rather than visual comparison.
 7. **Robustness.** Alternative windows, rebalance frequencies, cost
@@ -70,10 +91,12 @@ run, whether or not the results favor the regime-aware strategies.
 ## Repository structure
 
 ```
-├── config/          Single YAML controlling dates, tickers, windows, costs
+├── config/          config.yaml (runtime) + analysis_plan.yaml (frozen preregistration)
+├── docs/            research_design.md — preregistered empirical design
 ├── data/
 │   ├── raw/         Vendor files exactly as downloaded (not committed)
 │   ├── processed/   Aligned analysis panels (not committed)
+│   ├── snapshots/   SHA-256 manifests freezing each data snapshot (committed)
 │   └── README.md    Data dictionary, sources, missing-value policy
 ├── notebooks/       Exploration and exposition; call src/, never re-implement it
 ├── src/             All substantive code: loading, preprocessing, models,

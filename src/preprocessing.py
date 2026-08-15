@@ -206,6 +206,26 @@ def vix_changes(macro: pd.DataFrame, log: bool = True) -> pd.Series:
     return change
 
 
+def apply_signal_lag(
+    data: pd.DataFrame | pd.Series,
+    lag_days: int = 1,
+) -> pd.DataFrame | pd.Series:
+    """Lag a series by ``lag_days`` trading days for use in trading signals.
+
+    Frozen policy (docs/research_design.md §3): FRED-sourced series are
+    lagged one extra trading day before entering any signal, because
+    H.15 yields are published with a lag and same-close availability of
+    the VIX print is not guaranteed for a close-of-day decision.
+    Price-derived features carry lag 0.
+
+    The value dated ``t`` in the returned frame was observed on trading
+    day ``t - lag_days``.
+    """
+    if lag_days < 0:
+        raise ValueError("lag_days must be non-negative")
+    return data.shift(lag_days)
+
+
 # ---------------------------------------------------------------------------
 # Look-ahead guard
 # ---------------------------------------------------------------------------
