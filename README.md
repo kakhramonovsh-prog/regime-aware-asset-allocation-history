@@ -2,10 +2,11 @@
 
 **Evidence from U.S. Financial Markets**
 
-Empirical research project. Status: **data pipeline verified and
-empirical design preregistered; modelling phases in progress.** No
-results are reported yet, and none will be reported until the
-out-of-sample experiments have run.
+Empirical research project. Status: **design preregistered
+(`v0.2.0-preregistered`); Phase 4 EDA complete (`v0.3.0-eda`,
+[report](outputs/phase4_eda_report.md)); volatility and regime modelling
+next.** No strategy results exist yet, and none will be reported until
+the out-of-sample experiments have run.
 
 ## Research question
 
