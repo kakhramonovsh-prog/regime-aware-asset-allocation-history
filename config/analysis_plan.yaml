@@ -79,7 +79,8 @@ regime_covariance:
   horizon_days: 21
   state_probabilities: horizon_averaged_transition_powers
   state_cov_estimator: responsibility_weighted_shrunk_to_ledoit_wolf
-  neff_threshold: 60
+  responsibilities: smoothed_given_information_through_t   # Amendment A1
+  neff_threshold: 60          # ~1 quarter of daily data; rationale in design doc §6 (A1)
   neff_shrinkage_rule: "mix weight n_eff/(n_eff+60) toward unconditional"
   psd_eigenvalue_floor: 1.0e-10
 
@@ -118,6 +119,7 @@ robustness_grid:
   hmm_states: [2, 3]
   feature_ablations: [drop_vix, drop_realized_vol]
   covariance_estimators: [sample, ewma, ledoit_wolf]
+  neff_thresholds: [30, 60, 120]        # Amendment A1
   estimation_windows: [expanding, rolling_5y]
   weight_caps: [0.30, 0.40, 0.50]
   cost_bps: [0, 5, 20]
@@ -134,3 +136,18 @@ seeds:
   global: 42
   hmm_inits: "42..57"
   bootstrap: 12345
+
+# -----------------------------------------------------------------------------
+# Amendments (frozen values above are never edited silently; the tagged
+# original v0.2.0-preregistered remains immutable in git history)
+# -----------------------------------------------------------------------------
+amendments:
+  A1:
+    date: "2026-08-15"
+    results_seen: false          # no model had been estimated at amendment time
+    reason: external review of the preregistration, before Phase 4
+    changes:
+      - "regime_covariance.responsibilities: clarified as smoothed responsibilities P(S_s=k|F_t) from the fit through t; trading signal remains the filtered endpoint probability"
+      - "robustness_grid.neff_thresholds: [30, 60, 120] added; rationale for 60 documented in docs/research_design.md §6"
+      - "cost convention restated with worked example (design doc §8); cost multiplies full trade sum, not halved turnover"
+      - "reference list verified; [VERIFY] markers replaced with DOIs"

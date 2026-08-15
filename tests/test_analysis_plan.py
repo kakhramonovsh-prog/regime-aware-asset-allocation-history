@@ -70,3 +70,15 @@ def test_plan_declares_no_results_at_freeze():
     assert plan["hypothesis"]["primary_comparator"] == "rolling_lw_minvar"
     assert plan["portfolio"]["volatility_targeting"] == "excluded_from_main"
     assert plan["hmm"]["probabilities_for_trading"] == "filtered_at_t_only"
+
+
+def test_amendment_a1_recorded_before_results():
+    plan = _load("analysis_plan.yaml")
+    a1 = plan["amendments"]["A1"]
+    assert a1["results_seen"] is False
+    assert (
+        plan["regime_covariance"]["responsibilities"]
+        == "smoothed_given_information_through_t"
+    )
+    assert plan["robustness_grid"]["neff_thresholds"] == [30, 60, 120]
+    assert plan["regime_covariance"]["neff_threshold"] == 60

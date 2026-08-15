@@ -219,14 +219,29 @@ At rebalance date `t` with holding horizon `H = 21` trading days:
 2. **Horizon-averaged state probabilities** using the transition matrix
    `P_t` estimated through `t`:
    `p̄_t(H) = (1/H) Σ_{h=1..H} p_t P_t^h`.
-3. **State-conditional covariances** `Σ_{k,t}`: responsibility-weighted
-   covariance of daily returns using filtered state probabilities
-   available at `t`, shrunk toward the unconditional Ledoit-Wolf
+3. **State-conditional covariances** `Σ_{k,t}` (wording tightened by
+   Amendment A1): weighted covariance of daily returns with weights
+   `γ_{s,k} = P(S_s = k | F_t)`, the **smoothed responsibilities from
+   the model fit on data through `t`**. Smoothing at a historical date
+   `s < t` uses observations between `s` and `t`, all of which are
+   known at the rebalance date, so the estimate conditions only on
+   `F_t` and is causal *at the decision date*. The trading signal for
+   the current state remains the filtered endpoint probability `p_t`
+   (identical to the smoothed value at `s = t`). Full-sample smoothed
+   paths (conditioning on data after `t`) never enter any estimate.
+   Each `Σ_{k,t}` is shrunk toward the unconditional Ledoit-Wolf
    estimate. Effective sample size per state:
    `n_eff,k = (Σ_s γ_{s,k})² / Σ_s γ_{s,k}²`.
    If `n_eff,k < 60`, shrinkage toward the unconditional estimate
-   increases (documented mixing weight `n_eff/(n_eff+60)`); if a state
-   is degenerate (Section 5), the strategy falls back to unconditional.
+   increases with mixing weight `n_eff/(n_eff+60)`; if a state is
+   degenerate (Section 5), the strategy falls back to unconditional.
+   **Why 60:** roughly one quarter of daily data (63 trading days,
+   rounded), matching the project's 63-day estimation windows; a
+   five-asset covariance matrix has 15 free parameters, so 60
+   observations is about four per parameter, a floor below which
+   sample covariance estimates are fragile. The value is a
+   regularization constant, not an estimated quantity; thresholds
+   **30 and 120** are predetermined robustness checks (Amendment A1).
 4. **Forecast covariance** `Σ_RA,t = Σ_k p̄_{t,k}(H) Σ_{k,t}`,
    symmetrized and checked positive semidefinite (eigenvalue floor
    1e-10 with logged clipping).
@@ -275,8 +290,14 @@ the main analysis.
 - Absolute trading volume: `V_t = Σ_i |w_i,target − w_i,pretrade|`.
 - Reported one-way turnover: `V_t / 2`.
 - Cost charged on the execution date: `cost_t = c × V_t`, with
-  `c = 10 bps` in the primary specification. The factor of two is never
-  applied twice; the convention is fixed here and unit-tested.
+  `c = 10 bps` in the primary specification. **The cost multiplies the
+  full trade sum `V_t`, never the halved turnover figure**, so costs
+  are not understated; the factor of two is never applied twice. The
+  convention is fixed here and unit-tested in Phase 9.
+- Worked example: targets rise 10 percentage points in each of two
+  assets and fall 20 in a third. Then `V_t = 0.10 + 0.10 + 0.20 =
+  0.40`, reported turnover is `0.20`, and the cost at 10 bps is
+  `0.0010 × 0.40 = 4.0` bps of portfolio value.
 - 0, 5, and 20 bps are **sensitivity analyses**, not alternative
   headline results.
 - Gross returns, cost series, and net returns are stored separately;
@@ -365,29 +386,59 @@ Paths use the repository's `outputs/` tree (equivalent to the
 - Repository remote is private until the design is frozen, EDA is
   complete, and the README accurately reflects finished work only.
 
-## 13. References to verify at paper stage
+## 13. References
 
-Standard results this design relies on. Per project policy these are
-flagged for manual verification (DOI check) before they enter
-`references.bib`; none has been verified against the publisher yet.
+Standard results this design relies on. Bibliographic details were
+verified against publisher or index pages on 2026-08-15 (sources:
+Taylor & Francis, ScienceDirect/ACM DL, JSTOR, RePEc, Duke Scholars);
+they will be re-checked once more when `references.bib` is built.
 
 - Hamilton, J. D. (1989). A New Approach to the Economic Analysis of
   Nonstationary Time Series and the Business Cycle. *Econometrica*
-  57(2), 357-384. [VERIFY]
+  57(2), 357-384. JSTOR: https://www.jstor.org/stable/1912559
+  (DOI 10.2307/1912559).
 - Ledoit, O., & Wolf, M. (2004). A well-conditioned estimator for
   large-dimensional covariance matrices. *Journal of Multivariate
-  Analysis* 88(2), 365-411. [VERIFY]
+  Analysis* 88(2), 365-411. DOI 10.1016/S0047-259X(03)00096-4.
 - Patton, A. J. (2011). Volatility forecast comparison using imperfect
-  volatility proxies. *Journal of Econometrics* 160(1), 246-256. [VERIFY]
+  volatility proxies. *Journal of Econometrics* 160(1), 246-256.
+  DOI 10.1016/j.jeconom.2010.03.034.
 - Diebold, F. X., & Mariano, R. S. (1995). Comparing Predictive
-  Accuracy. *Journal of Business & Economic Statistics* 13(3), 253-263. [VERIFY]
+  Accuracy. *Journal of Business & Economic Statistics* 13(3), 253-263.
+  DOI 10.1080/07350015.1995.10524599.
 - Politis, D. N., & Romano, J. P. (1994). The Stationary Bootstrap.
-  *Journal of the American Statistical Association* 89(428), 1303-1313. [VERIFY]
+  *Journal of the American Statistical Association* 89(428), 1303-1313.
+  DOI 10.1080/01621459.1994.10476870.
 - Hansen, P. R. (2005). A Test for Superior Predictive Ability.
-  *Journal of Business & Economic Statistics* 23(4), 365-380. [VERIFY]
+  *Journal of Business & Economic Statistics* 23(4), 365-380.
+  DOI 10.1198/073500105000000063.
 
-## Deviations
+## Amendments and deviations
 
-None as of the freeze. Any change to a frozen item after
-`v0.2.0-preregistered` must be recorded here with date, reason, and
-whether any results had been seen when the change was made.
+Any change to a frozen item after `v0.2.0-preregistered` must be
+recorded here with date, reason, and whether any results had been seen
+when the change was made. The tagged version remains immutable in git
+history, so every amendment is diffable.
+
+### Amendment A1 — 2026-08-15 (no results of any kind existed)
+
+Made in response to external review of the preregistration, before
+Phase 4 began and before any model estimation:
+
+1. **Responsibilities clarified (§6 step 3).** State-conditional
+   covariances use smoothed responsibilities `P(S_s = k | F_t)` from
+   the fit on data through `t`. This conditions only on information
+   available at the rebalance date; the current-state trading signal
+   remains the filtered endpoint probability. The original wording
+   ("filtered state probabilities available at t") was ambiguous
+   between this and re-using the stored real-time filtered series.
+2. **`n_eff` threshold rationale documented (§6)** and thresholds
+   30/120 added to the predetermined robustness grid. The value 60 is
+   a regularization constant chosen for consistency with the project's
+   63-day quarterly windows (~4 observations per free covariance
+   parameter for 5 assets); it was not tuned on any result.
+3. **Cost convention restated with a worked example (§8)** confirming
+   the cost multiplies the full trade sum `V_t`, not the halved
+   turnover figure.
+4. **References verified (§13)**: `[VERIFY]` markers replaced with
+   publisher-checked volumes, pages, and DOIs.
