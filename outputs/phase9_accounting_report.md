@@ -63,28 +63,35 @@ equal gross returns to 1.1e-16.
 
 ## 3. Trading activity
 
-Annualized one-way turnover (the halved reporting figure; costs are
-charged on the full trade sum):
+Annualized trading activity. **Half-turnover** is the conventional
+reporting figure (`Σ|Δw| / 2`); **full traded notional** is what costs
+are actually charged on (`Σ|Δw|`); the last column is the annualized
+**cost expenditure**, i.e. the sum of charged cost fractions per year:
 
-| Strategy | Turnover (% p.a.) | Cost drag at 10 bps (bps p.a.) |
-|---|---|---|
-| 60/40 | 14.4 | 2.88 |
-| Rolling LW min-var | 16.9 | 3.39 |
-| Static min-var | 17.6 | 3.53 |
-| Equal weight | 18.9 | 3.78 |
-| **Regime-aware min-var** | **54.2** | **10.84** |
-| **EWMA-scaled min-var** | **98.2** | **19.64** |
+| Strategy | Half-turnover | Full traded notional | Cost expenditure at 10 bps |
+|---|---|---|---|
+| 60/40 | 14.4% | 28.8% | 2.88 bps |
+| Rolling LW min-var | 16.9% | 33.8% | 3.39 bps |
+| Static min-var | 17.6% | 35.2% | 3.53 bps |
+| Equal weight | 18.9% | 37.8% | 3.78 bps |
+| **Regime-aware min-var** | **54.2%** | **108.4%** | **10.84 bps** |
+| **EWMA-scaled min-var** | **98.2%** | **196.4%** | **19.64 bps** |
+
+The last column is deliberately labeled *cost expenditure*, not "cost
+drag": the realized drag on CAGR depends on compounding and on when the
+costs are charged, and is computed in Phase 10 rather than inferred
+here.
 
 Two observations, both descriptive:
 
-**The ladder's responsive rungs trade far more.** Regime-aware turnover
-is 3.2× the rolling Ledoit-Wolf comparator, and EWMA-scaled is 5.8×.
-This is the mechanical counterpart of the Phase 8 finding that target
-dispersion rises across the ladder (0.026 for rolling LW, 0.060 for both
-responsive strategies).
+**The ladder's responsive rungs trade far more.** Regime-aware
+half-turnover is 3.2× the rolling Ledoit-Wolf comparator, and
+EWMA-scaled is 5.8×. This is the mechanical counterpart of the Phase 8
+finding that target dispersion rises across the ladder (0.026 for
+rolling LW, 0.060 for both responsive strategies).
 
-**Cost drag scales with it.** At the 10 bps primary assumption the
-regime-aware strategy pays about 10.8 bps per year against the
+**Cost expenditure scales with it.** At the 10 bps primary assumption
+the regime-aware strategy spends about 10.8 bps per year against the
 comparator's 3.4 bps — a **hurdle of roughly 7.5 bps per year** that its
 risk reduction must clear before it can improve net performance.
 Whether it does is a Phase 10-11 question and is deliberately not
@@ -92,7 +99,7 @@ answered here.
 
 Even the nominally static strategies trade: fixed targets must be
 re-established each month after drift, which is why 60/40 shows 14.4%
-annual turnover rather than zero. A test asserts this scheduled
+annual half-turnover rather than zero. A test asserts this scheduled
 rebalancing occurs.
 
 ## 4. Other integrity checks

@@ -130,6 +130,19 @@ costs:
   returns_convention: simple             # log returns remain for estimation only
   costs_alter_holdings: false            # weight path identical across cost levels
 
+metrics:                        # frozen before any metric was computed
+  primary_series: "regime_minvar net @10bps vs rolling_lw_minvar net @10bps"
+  sensitivity_series: "net @0/5/20bps"
+  cagr: "(V_T/V_0)^(365.25/D) - 1, D = elapsed calendar days, entry cost included"
+  ann_volatility: "std(r_t) * sqrt(252)"
+  risk_free: "r_f,t = (DFF_{t-1}/100) * (calendar_days(t-1,t)/360); zero on the entry row"
+  sharpe: "mean(r - r_f)/std(r - r_f) * sqrt(252)"
+  sortino: "mean(r - r_f)/sqrt(mean(min(r - r_f, 0)^2)) * sqrt(252)"
+  drawdown: "V_t / cummax(V_s<=t) - 1, from the NET wealth path"
+  calmar: "CAGR / |max drawdown|"
+  var_es: "historical daily 95% and 99%; losses reported as POSITIVE numbers"
+  significance_claims: forbidden_until_phase_11
+
 inference:
   bootstrap: stationary_politis_romano
   bootstrap_replications: 10000

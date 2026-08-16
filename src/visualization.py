@@ -243,6 +243,141 @@ def fig_macro_features(macro: pd.DataFrame, slope: pd.Series, path: Path) -> Pat
     return path
 
 
+# Strategy palette, validated on the white figure surface: all six
+# slots pass the lightness band, chroma floor, adjacent CVD separation
+# (worst 8.4), normal-vision floor, and >= 3:1 contrast. Legends plus
+# CSV tables provide the secondary encoding the CVD floor band requires.
+STRATEGY_COLORS = {
+    "equal_weight": "#2a78d6",
+    "static_6040": "#eb6834",
+    "static_minvar": "#199e70",
+    "rolling_lw_minvar": "#4a3aa7",
+    "ewma_scaled_minvar": "#d55181",
+    "regime_minvar": "#008300",
+}
+STRATEGY_LABELS = {
+    "equal_weight": "Equal weight",
+    "static_6040": "60/40",
+    "static_minvar": "Static min-var",
+    "rolling_lw_minvar": "Rolling LW min-var",
+    "ewma_scaled_minvar": "EWMA-scaled min-var",
+    "regime_minvar": "Regime-aware min-var",
+}
+
+
+def _strategy_order(available: list[str]) -> list[str]:
+    return [s for s in STRATEGY_COLORS if s in available]
+
+
+def fig_cumulative_growth(wealth: pd.DataFrame, path: Path, cost_bps: int) -> Path:
+    """Cumulative net wealth per strategy, log scale, direct end labels."""
+    with plt.rc_context(_RC):
+        fig, ax = plt.subplots(figsize=(10, 5.6))
+        for strategy in _strategy_order(list(wealth.columns)):
+            series = wealth[strategy]
+            ax.plot(series.index, series, color=STRATEGY_COLORS[strategy],
+                    label=STRATEGY_LABELS[strategy], linewidth=1.3)
+            ax.annotate(f" {series.iloc[-1]:.2f}x",
+                        xy=(series.index[-1], series.iloc[-1]),
+                        fontsize=8, color=STRATEGY_COLORS[strategy], va="center")
+        ax.set_yscale("log")
+        ax.set_yticks([1, 1.5, 2, 3, 4])
+        ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+        ax.set_ylabel("Growth of 1.00 (log scale)")
+        ax.set_title(f"Cumulative net wealth, {cost_bps} bps transaction costs")
+        ax.margins(x=0.06)
+        _despine(ax)
+        ax.legend(loc="upper left", ncols=2)
+        _footnote(fig, wealth.index, "Net of costs; entry from 100% cash included.")
+        fig.savefig(path)
+        plt.close(fig)
+    return path
+
+
+def fig_strategy_drawdowns(drawdowns: pd.DataFrame, path: Path, cost_bps: int) -> Path:
+    """Drawdown paths from the net wealth series."""
+    with plt.rc_context(_RC):
+        fig, ax = plt.subplots(figsize=(10, 5.2))
+        for strategy in _strategy_order(list(drawdowns.columns)):
+            series = drawdowns[strategy] * 100
+            ax.plot(series.index, series, color=STRATEGY_COLORS[strategy],
+                    label=f"{STRATEGY_LABELS[strategy]} ({series.min():.0f}%)",
+                    linewidth=1.1)
+        ax.set_ylabel("Drawdown (%)")
+        ax.set_title(f"Drawdown from running maximum, {cost_bps} bps costs")
+        _despine(ax)
+        ax.legend(loc="lower left", ncols=2)
+        _footnote(fig, drawdowns.index, "Worst drawdown per strategy shown in the legend.")
+        fig.savefig(path)
+        plt.close(fig)
+    return path
+
+
+def fig_rolling_sharpe(rolling: pd.DataFrame, path: Path, window: int = 252) -> Path:
+    """Trailing rolling Sharpe ratio (backward-looking window)."""
+    with plt.rc_context(_RC):
+        fig, ax = plt.subplots(figsize=(10, 5.2))
+        for strategy in _strategy_order(list(rolling.columns)):
+            ax.plot(rolling.index, rolling[strategy],
+                    color=STRATEGY_COLORS[strategy],
+                    label=STRATEGY_LABELS[strategy], linewidth=1.1)
+        ax.axhline(0, color=BASELINE, linewidth=0.9)
+        ax.set_ylabel("Rolling Sharpe (annualized)")
+        ax.set_title(f"{window}-day trailing Sharpe ratio, net of 10 bps costs")
+        _despine(ax)
+        ax.legend(loc="lower left", ncols=2)
+        _footnote(fig, rolling.dropna().index,
+                  "Trailing window; each point uses only prior observations.")
+        fig.savefig(path)
+        plt.close(fig)
+    return path
+
+
+def fig_weights_through_time(
+    weights: pd.DataFrame, path: Path, strategy_label: str
+) -> Path:
+    """Stacked post-trade weights for one strategy."""
+    ordered = [a for a in ASSET_COLORS if a in weights.columns]
+    with plt.rc_context(_RC):
+        fig, ax = plt.subplots(figsize=(10, 4.8))
+        ax.stackplot(
+            weights.index,
+            *[weights[a] * 100 for a in ordered],
+            labels=ordered,
+            colors=[ASSET_COLORS[a] for a in ordered],
+            edgecolor="white", linewidth=0.2,
+        )
+        ax.set_ylim(0, 100)
+        ax.set_ylabel("Weight (%)")
+        ax.set_title(f"Portfolio weights through time: {strategy_label}")
+        ax.margins(x=0)
+        _despine(ax)
+        ax.legend(loc="upper center", ncols=5)
+        _footnote(fig, weights.index, "Post-trade holdings, drifting between rebalances.")
+        fig.savefig(path)
+        plt.close(fig)
+    return path
+
+
+def fig_turnover(turnover: pd.DataFrame, path: Path) -> Path:
+    """Rolling 12-month half-turnover per strategy."""
+    with plt.rc_context(_RC):
+        fig, ax = plt.subplots(figsize=(10, 5.0))
+        for strategy in _strategy_order(list(turnover.columns)):
+            ax.plot(turnover.index, turnover[strategy] * 100,
+                    color=STRATEGY_COLORS[strategy],
+                    label=STRATEGY_LABELS[strategy], linewidth=1.1)
+        ax.set_ylabel("Trailing 12-month half-turnover (%)")
+        ax.set_title("Trading activity through time")
+        _despine(ax)
+        ax.legend(loc="upper left", ncols=2)
+        _footnote(fig, turnover.dropna().index,
+                  "Half-turnover; costs are charged on twice this notional.")
+        fig.savefig(path)
+        plt.close(fig)
+    return path
+
+
 def fig_regime_probabilities(
     realtime: pd.DataFrame,
     expost: pd.DataFrame,

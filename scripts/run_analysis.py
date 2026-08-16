@@ -36,7 +36,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=str(PROJECT_ROOT / "config" / "config.yaml"))
     parser.add_argument(
-        "--phase", choices=["4", "5", "6", "7", "8", "9", "all"], default="all"
+        "--phase", choices=["4", "5", "6", "7", "8", "9", "10", "all"], default="all"
     )
     args = parser.parse_args()
 
@@ -66,6 +66,8 @@ def main() -> None:
         run_phase8(config, plan, prices, macro)
     if args.phase in ("9", "all"):
         run_phase9(config, plan, prices)
+    if args.phase in ("10", "all"):
+        run_phase10(config, plan, macro)
 
 
 def run_phase4(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFrame) -> None:
@@ -703,6 +705,192 @@ def run_phase9(config: dict, plan: dict, prices: pd.DataFrame) -> None:
     )
     print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
     print("Phase 9 complete. Accounting only: no performance statistics examined.")
+
+
+def run_phase10(config: dict, plan: dict, macro: pd.DataFrame) -> None:
+    """Performance metrics from the STORED Phase 9 return series.
+
+    Never re-runs the backtest. Descriptive only: differences are point
+    estimates and nothing is described as statistically significant,
+    which is Phase 11's question.
+    """
+    from src import metrics as mt
+    from src import optimization as opt
+    from src import visualization as viz
+
+    bt_dir = PROJECT_ROOT / "outputs" / "backtests"
+    if not (bt_dir / "gross_returns.parquet").exists():
+        raise SystemExit("Run Phase 9 first: backtest outputs are missing.")
+
+    gross = pd.read_parquet(bt_dir / "gross_returns.parquet")
+    gross["date"] = pd.to_datetime(gross["date"])
+    turnover = pd.read_parquet(bt_dir / "turnover.parquet")
+    turnover["date"] = pd.to_datetime(turnover["date"])
+    costs = pd.read_parquet(bt_dir / "transaction_costs.parquet")
+    costs["date"] = pd.to_datetime(costs["date"])
+
+    scenarios = [int(b) for b in config["backtest"]["transaction_cost_bps"]]
+    main_bps = int(config["backtest"]["main_cost_bps"])
+    net_frames: dict[int, pd.DataFrame] = {}
+    for bps in scenarios:
+        frame = pd.read_parquet(bt_dir / f"net_returns_{bps}bps.parquet")
+        frame["date"] = pd.to_datetime(frame["date"])
+        net_frames[bps] = frame
+
+    dates = pd.DatetimeIndex(sorted(gross["date"].unique()))
+    risk_free = mt.risk_free_daily(dates, macro["DFF"], entry_date=dates[0])
+    print(f"\nPhase 10: metrics from stored returns, {len(dates)} days, "
+          f"{len(opt.STRATEGIES)} strategies, {len(scenarios)} cost scenarios")
+
+    rows: list[dict] = []
+    for bps in scenarios:
+        wide = net_frames[bps].pivot(index="date", columns="strategy", values="net_return")
+        for strategy in opt.STRATEGIES:
+            half_turnover = float(
+                turnover.loc[turnover["strategy"] == strategy, "half_turnover_reporting"].sum()
+                / (len(dates) / 252)
+            )
+            expenditure = float(
+                costs.loc[(costs["strategy"] == strategy) & (costs["cost_bps"] == bps),
+                          "cost_fraction"].sum() / (len(dates) / 252) * 1e4
+            )
+            summary = mt.performance_summary(
+                wide[strategy], risk_free, half_turnover, expenditure,
+                label=strategy,
+            )
+            summary.update(series="net", cost_bps=bps, strategy=strategy)
+            rows.append(summary)
+
+    gross_wide = gross.pivot(index="date", columns="strategy", values="gross_return")
+    for strategy in opt.STRATEGIES:
+        summary = mt.performance_summary(gross_wide[strategy], risk_free, label=strategy)
+        summary.update(series="gross", cost_bps=np.nan, strategy=strategy)
+        rows.append(summary)
+
+    performance = pd.DataFrame(rows)
+
+    # ---------------- safeguards, checked not assumed ----------------
+    checks: list[dict] = []
+
+    gross_rows = performance[performance["series"] == "gross"].set_index("strategy")
+    zero_rows = performance[
+        (performance["series"] == "net") & (performance["cost_bps"] == 0)
+    ].set_index("strategy")
+    max_gap = max(
+        abs(gross_rows.loc[s, m] - zero_rows.loc[s, m])
+        for s in opt.STRATEGIES for m in ("cagr", "sharpe", "max_drawdown")
+    )
+    checks.append({"check": "zero_cost_net_equals_gross", "value": max_gap,
+                   "passed": bool(max_gap < 1e-12)})
+
+    monotone = True
+    for strategy in opt.STRATEGIES:
+        subset = performance[
+            (performance["series"] == "net") & (performance["strategy"] == strategy)
+        ].sort_values("cost_bps")
+        wealth_values = subset["terminal_wealth"].to_numpy()
+        monotone &= bool(np.all(np.diff(wealth_values) <= 1e-12))
+    checks.append({"check": "higher_costs_weakly_lower_wealth", "value": float(monotone),
+                   "passed": monotone})
+
+    main = performance[
+        (performance["series"] == "net") & (performance["cost_bps"] == main_bps)
+    ]
+    reconcile = 0.0
+    main_wide = net_frames[main_bps].pivot(index="date", columns="strategy", values="net_return")
+    for strategy in opt.STRATEGIES:
+        wealth = mt.wealth_path(main_wide[strategy])
+        elapsed = (wealth.index[-1] - wealth.index[0]).days
+        implied = (1 + float(main.loc[main["strategy"] == strategy, "cagr"].iloc[0])) ** (
+            elapsed / 365.25
+        )
+        reconcile = max(reconcile, abs(implied - wealth.iloc[-1]))
+    checks.append({"check": "cagr_reconciles_with_wealth", "value": reconcile,
+                   "passed": bool(reconcile < 1e-8)})
+
+    same_dates = all(
+        net_frames[bps].groupby("strategy")["date"].apply(
+            lambda s: tuple(sorted(s))
+        ).nunique() == 1
+        for bps in scenarios
+    )
+    checks.append({"check": "all_strategies_same_dates", "value": float(same_dates),
+                   "passed": same_dates})
+
+    check_frame = pd.DataFrame(checks)
+    if not check_frame["passed"].all():
+        raise RuntimeError(f"Phase 10 safeguards failed:\n{check_frame}")
+    print("  safeguards: all passed "
+          f"(max zero-cost gap {max_gap:.2e}, CAGR reconciliation {reconcile:.2e})")
+
+    # ---------------- outputs ----------------
+    perf_dir = PROJECT_ROOT / "outputs" / "performance"
+    figures_dir = PROJECT_ROOT / "outputs" / "figures"
+    perf_dir.mkdir(parents=True, exist_ok=True)
+    artifacts: list[Path] = []
+
+    ppath = perf_dir / "performance_summary.csv"
+    performance.to_csv(ppath, index=False)      # full precision, no rounding
+    artifacts.append(ppath)
+    print(f"  performance {ppath.name}  ({len(performance)} rows)")
+
+    cpath = perf_dir / "safeguard_checks.csv"
+    check_frame.to_csv(cpath, index=False)
+    artifacts.append(cpath)
+
+    wealth_main = pd.DataFrame(
+        {s: mt.wealth_path(main_wide[s]) for s in opt.STRATEGIES}
+    )
+    drawdowns = pd.DataFrame(
+        {s: mt.drawdown_path(wealth_main[s]) for s in opt.STRATEGIES}
+    )
+    rolling = pd.DataFrame(
+        {s: mt.rolling_sharpe(main_wide[s], risk_free) for s in opt.STRATEGIES}
+    )
+    for frame, name in ((wealth_main, "wealth_paths"), (drawdowns, "drawdown_paths"),
+                        (rolling, "rolling_sharpe")):
+        path = perf_dir / f"{name}_{main_bps}bps.parquet"
+        frame.reset_index().to_parquet(path, index=False)
+        artifacts.append(path)
+
+    print("  figures:")
+    figures = [
+        viz.fig_cumulative_growth(wealth_main, figures_dir / "cumulative_growth.png", main_bps),
+        viz.fig_strategy_drawdowns(drawdowns, figures_dir / "strategy_drawdowns.png", main_bps),
+        viz.fig_rolling_sharpe(rolling, figures_dir / "rolling_sharpe.png"),
+    ]
+    posttrade = pd.read_parquet(bt_dir / "posttrade_weights.parquet")
+    posttrade["date"] = pd.to_datetime(posttrade["date"])
+    for strategy in ("regime_minvar", "rolling_lw_minvar"):
+        subset = posttrade[posttrade["strategy"] == strategy].set_index("date")
+        subset = subset.drop(columns=["strategy"])
+        figures.append(viz.fig_weights_through_time(
+            subset, figures_dir / f"weights_{strategy}.png",
+            viz.STRATEGY_LABELS[strategy],
+        ))
+    rolling_turnover = pd.DataFrame({
+        s: turnover[turnover["strategy"] == s].set_index("date")[
+            "half_turnover_reporting"].rolling(252).sum()
+        for s in opt.STRATEGIES
+    })
+    figures.append(viz.fig_turnover(rolling_turnover, figures_dir / "turnover.png"))
+    for f in figures:
+        artifacts.append(f)
+        print(f"    {f.name}")
+
+    manifest_path = eda.write_phase_manifest(
+        artifacts, PROJECT_ROOT, SNAPSHOT_MANIFEST,
+        PROJECT_ROOT / "outputs" / "phase10_manifest.json",
+        phase="10-performance",
+        note=(
+            "Descriptive performance metrics computed from the stored Phase 9 "
+            "return series; the backtest was not re-run. Differences between "
+            "strategies are point estimates only. No statistical significance "
+            "is claimed or tested here; that is Phase 11."
+        ),
+    )
+    print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
+    print("Phase 10 complete. Descriptive only: no significance tested.")
 
 
 if __name__ == "__main__":
