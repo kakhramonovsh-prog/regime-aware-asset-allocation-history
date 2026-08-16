@@ -13,3 +13,4 @@ matplotlib==3.11.1
 PyYAML==6.0.3
 pytest==9.1.1
 pyarrow==25.0.1
+jinja2==3.1.6        # pandas .to_latex() for paper tables

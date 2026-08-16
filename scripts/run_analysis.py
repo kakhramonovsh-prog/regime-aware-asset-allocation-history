@@ -40,6 +40,11 @@ def main() -> None:
         choices=["4", "5", "6", "7", "8", "9", "10", "11", "all"],
         default="all",
     )
+    parser.add_argument(
+        "--allow-unfrozen", action="store_true",
+        help="proceed when data does not match the frozen snapshot; results "
+             "will NOT reproduce the paper (live-rebuild mode)",
+    )
     args = parser.parse_args()
 
     config = data_loader.load_config(args.config)
@@ -49,8 +54,14 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Integrity gate: only the frozen snapshot may be analyzed.
     # ------------------------------------------------------------------
-    eda.verify_snapshot(SNAPSHOT_MANIFEST, PROJECT_ROOT)
-    print(f"Snapshot verified against {SNAPSHOT_MANIFEST.name}: all hashes match.")
+    try:
+        eda.verify_snapshot(SNAPSHOT_MANIFEST, PROJECT_ROOT)
+        print(f"Snapshot verified against {SNAPSHOT_MANIFEST.name}: all hashes match.")
+    except RuntimeError:
+        if not args.allow_unfrozen:
+            raise
+        print("WARNING: data does not match the frozen snapshot. Running in "
+              "LIVE-REBUILD mode; results will NOT reproduce the paper.")
 
     processed = PROJECT_ROOT / config["data"]["processed_dir"]
     prices = pd.read_csv(processed / "prices.csv", index_col="Date", parse_dates=True)

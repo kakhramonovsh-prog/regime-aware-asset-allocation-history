@@ -1,0 +1,37 @@
+{
+  "generated_at_utc": "2026-08-16T17:53:18+00:00",
+  "git_commit": "cbdf5db9ad4113a638c663430c9c25daa3bd918d",
+  "config_sha256": "3c3dd76044df58c673c20ce4e6983edd5afcd5a03ee0d446dd5599d326a7acd2",
+  "data_snapshot_sha256": "6ce35432bae2969dc7598e150f877a3faec5a4453e9da77077b71fb3736715c2",
+  "python_version": "3.12.10",
+  "headline_values": {
+    "primary_sharpe_diff": 0.0209655185418421,
+    "primary_ci_lower": -0.0748040227350396,
+    "primary_ci_upper": 0.1147052243167773,
+    "primary_p_value": 0.3273,
+    "vol_difference": -0.0017544903048056,
+    "hac_annual_return_diff": 3.140393591106442e-05,
+    "regime_sharpe": 0.9292400829835668,
+    "comparator_sharpe": 0.9082745644417248,
+    "regime_half_turnover": 0.541885535043826,
+    "comparator_half_turnover": 0.1693822270101275
+  },
+  "note": "Every value passed through src/units.py and was verified against its raw value. The LaTeX reads numbers only via paper/macros.tex; no result is typed by hand.",
+  "artifacts": {
+    "paper/tables/table1_performance.csv": "fa50c2fdeb2d8f5633cd7828429ae5c6457572e38b4303dbd85465053aceb562",
+    "paper/tables/table1_performance.tex": "92ebac364de9cd3d8d98c9fee9aa669676af3d313a0d32aab1ee1538e0f334be",
+    "paper/tables/table2_primary_inference.csv": "449f261e2905474014ef2795416195c820b2323ef6997435bd539921edaf5768",
+    "paper/tables/table2_primary_inference.tex": "580a6b984a2d79116335680f66dc95c567caa4c62dd2f630c3f42361f18686a6",
+    "paper/tables/table3_secondary_intervals.csv": "120ff25246af0b7acf2c8ebac6756f3f49880ddc5c3233cd391dd89bedb96915",
+    "paper/tables/table3_secondary_intervals.tex": "71293882db1d57d574cbe3f2050558d4011f3b7b1217f9485cade7c4909423bb",
+    "paper/tables/table4_robustness_grid.csv": "737442862b9fa644f70cd81ef8d26e3230cacff9547b222232b4bb8862722dc8",
+    "paper/tables/table4_robustness_grid.tex": "646cdbaeccec574fa794ee7aa519fbd720cb159e87d0cfb3f70313a591841004",
+    "paper/macros.tex": "790aa0e61adbc3c4eb2983166d8c09d3c64bba7eb5ff04390ef43252a2e14075",
+    "paper/figures/normalized_prices.png": "1d761423179beaa7d2b67e1f3590f6d8fe620ee7d6be6665c91f539efe052e47",
+    "paper/figures/vix_vs_realized_vol.png": "a0221041c7a94e0e0565a672bb1906ae38b626a790b188e306eef5e68746d4b0",
+    "paper/figures/regime_probabilities.png": "c657eec82324867fbb84edd45e8265889e2684adb02c6c9bbd1ef6d09df826e0",
+    "paper/figures/cumulative_growth.png": "5d148347b3ab5d13968e053814cfcadf9d81f1aab2f579e1969fc212d0a9f4d5",
+    "paper/figures/strategy_drawdowns.png": "583459d073e371ad5ef4b5fb02f2e008eba1cd533e8c7f8ec30ac1946734fcd4",
+    "paper/figures/robustness_forest.png": "4b49ae3d2bcc7dd240929a429203e005b5278f3a533e73b9b37fd269605fc8ce"
+  }
+}

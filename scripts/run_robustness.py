@@ -432,13 +432,23 @@ def main() -> None:
                         help="fewer bootstrap replications, for smoke testing")
     parser.add_argument("--force", action="store_true",
                         help="recompute specifications that already have checkpoints")
+    parser.add_argument(
+        "--allow-unfrozen", action="store_true",
+        help="proceed when data does not match the frozen snapshot; results "
+             "will NOT reproduce the paper (live-rebuild mode)",
+    )
     args = parser.parse_args()
 
     config = data_loader.load_config()
     with open(PROJECT_ROOT / "config" / "analysis_plan.yaml", encoding="utf-8") as fh:
         plan = yaml.safe_load(fh)
-    eda.verify_snapshot(SNAPSHOT, PROJECT_ROOT)
-    print(f"Snapshot verified against {SNAPSHOT.name}.")
+    try:
+        eda.verify_snapshot(SNAPSHOT, PROJECT_ROOT)
+        print(f"Snapshot verified against {SNAPSHOT.name}.")
+    except RuntimeError:
+        if not args.allow_unfrozen:
+            raise
+        print("WARNING: LIVE-REBUILD mode; results will NOT reproduce the paper.")
 
     processed = PROJECT_ROOT / config["data"]["processed_dir"]
     prices = pd.read_csv(processed / "prices.csv", index_col="Date", parse_dates=True)
