@@ -38,10 +38,18 @@ is in [`implementation_parameters.csv`](regimes/implementation_parameters.csv).
 
 **Selection rule.** Fits within a relative tolerance (1e-10) of the best
 training log-likelihood are treated as tied, and the lowest seed among
-them is selected. This matters in practice: **108 of 200 refits had two
-or more starts inside the tolerance band** (mean 2.3), so a plain argmax
-would have let ~1e-13 BLAS noise decide the fit and could differ across
-machines.
+them is selected. **108 of 200 refits had two or more starts inside the
+tolerance band** (mean 2.3), and at 193 of 200 refits the gap between
+the best and second-best log-likelihood fell below 1e-9 — the median gap
+is exactly zero, meaning several starts converge on the same optimum.
+
+The rule is a safeguard against a ranking flip driven by numerically
+immaterial differences. It has not been shown to be necessary: replaying
+the counterfactual across two independent full runs, plain `argmax`
+would have selected the same seed at all 200 origins (see
+`docs/REPRODUCTION.md`). Where the log-likelihood gap is exactly zero
+the two rules agree by construction, since both resolve to the lowest
+seed in array order.
 
 ## 2. Do the states separate, and are they persistent without being degenerate?
 

@@ -247,15 +247,41 @@ and verified before any analysis ran.
 | Display-table unit verification | all pass | all pass | PASS |
 | LaTeX macros | 10 | 10, byte-identical | PASS |
 
-**Floating-point behaviour.** The HMM did not return bit-identical
-log-likelihoods: the largest filtered-probability deviation between the
-two runs was **1.45e-11**. Every one of the 200 regime classifications
-and all 200 selected seeds nonetheless matched exactly, because fit
-selection uses a relative tolerance band with a lowest-seed tie-break
-rather than `argmax`, and the nearest probability sits 0.164 from the
-0.5 decision boundary. Numerical reproduction and hash-identical
-artifacts are different standards; this project meets the former by
-design and does not claim the latter.
+**Floating-point behaviour.** Despite floating-point differences up to
+**1.45e-11**, all selected seeds, classifications, and reported
+conclusions reproduced. The tolerance-based tie-breaking rule provided a
+safeguard against numerically immaterial ranking differences.
+
+**The safeguard was not shown to be necessary.** Replaying the
+counterfactual over both runs' initialization records — 3,200 fits
+each — plain `argmax` would have selected the **same seed at all 200
+origins**, so on this evidence the tolerance rule changed nothing.
+
+What the records do show is that the conditions making `argmax` fragile
+are present: 108 of 200 origins had two or more fits inside the
+tolerance band, and at 193 of 200 origins the gap between the best and
+second-best log-likelihood was below 1e-9 (median exactly zero, i.e.
+multiple starts converging on the same optimum). The rule is therefore
+justified as insurance against a ranking flip that these two runs did
+not produce, not as a fix for an observed failure.
+
+A related observation supports the width of the band. The two rules
+**disagree with each other at 144 of 200 origins within a single run**,
+because the tolerance (1e-10 relative, roughly 5e-7 in absolute terms
+here) is far wider than exact equality: `argmax` takes the strictly
+highest log-likelihood while the tolerance rule takes the lowest seed
+among fits statistically indistinguishable from it. Those two rules
+select different seeds most of the time, and every reported number still
+reproduced. Fits inside the band are therefore materially equivalent,
+which is exactly what a well-calibrated tolerance should deliver.
+
+The counterfactual is reproducible: `python
+scripts/test_argmax_counterfactual.py RUN_A RUN_B`, with results in
+`outputs/robustness/argmax_counterfactual.csv`.
+
+Numerical reproduction and hash-identical artifacts are different
+standards; this project meets the former by design and does not claim
+the latter.
 
 **Not yet verified:** the LaTeX build. No `.tex` source exists beyond
 the generated macros and tables, so the PDF build will be checked when
