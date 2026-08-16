@@ -82,9 +82,14 @@ def sharpe_impact_of_return_change(
 # ---------------------------------------------------------------------------
 
 def _scientific(x: float, decimals: int = 2) -> str:
-    """LaTeX scientific notation: 1.4503e-11 -> ``1.45 \\times 10^{-11}``."""
+    """LaTeX scientific notation: 1.4503e-11 -> ``1.45 \\times 10^{-11}``.
+
+    Wrapped in ``\\ensuremath`` rather than ``$...$`` so the value can be
+    used inside an equation as well as in running text; a literal ``$``
+    inside math mode closes it and aborts the compile.
+    """
     mantissa, exponent = f"{x:.{decimals}e}".split("e")
-    return rf"${mantissa} \times 10^{{{int(exponent)}}}$"
+    return rf"\ensuremath{{{mantissa} \times 10^{{{int(exponent)}}}}}"
 
 
 @dataclass(frozen=True)

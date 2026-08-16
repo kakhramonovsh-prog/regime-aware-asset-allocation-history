@@ -573,9 +573,12 @@ def main() -> None:
     for key, raw in headline.items():
         display, unit, formatted = un.to_display(raw, units_for[key])
         # A leading text hyphen is not a minus sign; the figures already
-        # use a typographic minus, so the prose must match.
+        # use a typographic minus, so the prose must match. It must be
+        # \ensuremath and not $-$: these macros are also used inside
+        # equation environments, where a literal $ closes math mode and
+        # aborts the compile with no PDF.
         if formatted.startswith("-"):
-            formatted = "$-$" + formatted[1:]
+            formatted = r"\ensuremath{-}" + formatted[1:]
         # '%' is a LaTeX comment character: an unescaped one silently
         # swallows the rest of the line, including the closing brace.
         unit_tex = unit.replace("%", r"\%")

@@ -25,19 +25,50 @@ def main() -> None:
     problems: list[str] = []
 
     macros_file = PAPER / "macros.tex"
-    defined = set(re.findall(r"newcommand\{\\(\w+)\}", macros_file.read_text(encoding="utf-8")))
-    used = set(re.findall(r"\\(\w+)\{\}", text)) | set(
-        re.findall(r"\\(primary\w+|vol\w+|hac\w+|regime\w+|comparator\w+)\b", text)
-    )
-    undefined = {m for m in used if m in
-                 {n for n in used if n[0].islower()} and m not in defined
-                 and re.match(r"(primary|vol|hac|regime|comparator)", m)}
+    macros_source = macros_file.read_text(encoding="utf-8")
+    macro_bodies = dict(re.findall(r"newcommand\{\\(\w+)\}\{(.*)\}\s*$",
+                                   macros_source, re.MULTILINE))
+    defined = set(macro_bodies)
+
+    # A generated macro is camelCase (lowercase run, then a capital);
+    # every LaTeX kernel command is all-lowercase. Matching on that
+    # convention checks the whole macro set instead of a prefix list,
+    # which previously let a new family through unchecked.
+    generated = re.compile(r"^[a-z]+[A-Z]")
+    used = {name for name in re.findall(r"\\(\w+)", text) if generated.match(name)}
+    undefined = used - defined
     print(f"Macros defined: {len(defined)}")
     print(f"  {', '.join(sorted(defined))}")
     if undefined:
         problems.append(f"macros used but not defined: {sorted(undefined)}")
     else:
         print("  all macros used in the text are defined")
+
+    # A macro whose body contains a literal '$' closes math mode when it
+    # is used inside an equation, which is a fatal error and produces no
+    # PDF. This exact failure reached CI: \primaryCiLower expanded to
+    # "$-$0.075" inside the primary-result equation.
+    print("\nMath-mode safety:")
+    math_regions = (
+        re.findall(r"\\begin\{(?:equation|align|gather)\*?\}(.*?)\\end\{"
+                   r"(?:equation|align|gather)\*?\}", text, re.DOTALL)
+        + re.findall(r"\\\[(.*?)\\\]", text, re.DOTALL)
+        + re.findall(r"(?<!\\)\$([^$]+)\$", text)
+    )
+    unsafe = set()
+    for region in math_regions:
+        for name in re.findall(r"\\(\w+)", region):
+            if name in macro_bodies and "$" in macro_bodies[name]:
+                unsafe.add(name)
+    if unsafe:
+        for name in sorted(unsafe):
+            print(f"  [FATAL] \\{name} -> {macro_bodies[name]!r} used in math mode")
+        problems.append(
+            f"macro(s) containing a literal '$' used inside math mode: "
+            f"{sorted(unsafe)}; use \\ensuremath instead"
+        )
+    else:
+        print(f"  {len(math_regions)} math regions, no macro closes math mode")
 
     print("\nInputs:")
     for target in re.findall(r"\\input\{([^}]+)\}", text):

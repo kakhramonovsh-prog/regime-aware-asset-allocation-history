@@ -1,16 +1,16 @@
 result_id,macro,raw_value,display_value,unit,rendered,source_artifact
 primary_sharpe_diff,\primarySharpeDiff,0.0209655185418421,0.0209655185418421,sharpe_difference,0.021,outputs/inference/primary_inference_summary.csv
-primary_ci_lower,\primaryCiLower,-0.0748040227350396,-0.0748040227350396,ci95_lower,$-$0.075,outputs/inference/primary_inference_summary.csv
+primary_ci_lower,\primaryCiLower,-0.0748040227350396,-0.0748040227350396,ci95_lower,\ensuremath{-}0.075,outputs/inference/primary_inference_summary.csv
 primary_ci_upper,\primaryCiUpper,0.1147052243167773,0.1147052243167773,ci95_upper,0.115,outputs/inference/primary_inference_summary.csv
 primary_p_value,\primaryPValue,0.3273,0.3273,p_value,0.327,outputs/inference/primary_inference_summary.csv
 primary_bootstrap_sd,\primaryBootstrapSd,0.0479605238838408,0.0479605238838408,sharpe,0.048,outputs/inference/primary_inference_summary.csv
 primary_sds_from_zero,\primarySdsFromZero,0.437141149513297,0.437141149513297,sharpe,0.437,outputs/inference/primary_inference_summary.csv
 ci_width_multiple,\ciWidthMultiple,9.039091815144104,9.039091815144104,factor,9.0,outputs/inference/primary_inference_summary.csv
 block_max_deviation,\blockMaxDeviation,0.004572759207868302,0.004572759207868302,sharpe_difference,0.005,outputs/inference/block_length_sensitivity.csv
-vol_difference,\volDifference,-0.0017544903048056,-0.17544903048056001,pp,"$-$0.175\,pp",outputs/inference/secondary_metric_intervals.csv
+vol_difference,\volDifference,-0.0017544903048056,-0.17544903048056001,pp,"\ensuremath{-}0.175\,pp",outputs/inference/secondary_metric_intervals.csv
 vol_difference_magnitude,\volDifferenceMagnitude,0.0017544903048056,0.17544903048056001,pp,"0.175\,pp",outputs/inference/secondary_metric_intervals.csv
-vol_ci_lower,\volCiLower,-0.0032716321014983,-0.32716321014982996,pp,"$-$0.327\,pp",outputs/inference/secondary_metric_intervals.csv
-vol_ci_upper,\volCiUpper,-0.0003251418460497,-0.03251418460497,pp,"$-$0.033\,pp",outputs/inference/secondary_metric_intervals.csv
+vol_ci_lower,\volCiLower,-0.0032716321014983,-0.32716321014982996,pp,"\ensuremath{-}0.327\,pp",outputs/inference/secondary_metric_intervals.csv
+vol_ci_upper,\volCiUpper,-0.0003251418460497,-0.03251418460497,pp,"\ensuremath{-}0.033\,pp",outputs/inference/secondary_metric_intervals.csv
 hac_annual_return_diff,\hacAnnualReturnDiff,3.140393591106442e-05,0.3140393591106442,bps,"0.314\,bps",outputs/inference/hac_mean_difference.csv
 hac_standard_error,\hacStandardError,0.0036216010293093283,36.216010293093284,bps,"36.216\,bps",outputs/inference/hac_mean_difference.csv
 hac_p_value,\hacPValue,0.9930814020083192,0.9930814020083192,p_value,0.993,outputs/inference/hac_mean_difference.csv
@@ -28,8 +28,8 @@ regime_cost,\regimeCost,0.0010837710700876521,10.83771070087652,bps,"10.838\,bps
 comparator_cost,\comparatorCost,0.000338764454020255,3.38764454020255,bps,"3.388\,bps",outputs/backtests/turnover.parquet
 turnover_ratio,\turnoverRatio,3.199187686978671,3.199187686978671,factor,3.2,outputs/backtests/turnover.parquet
 cost_hurdle,\costHurdle,0.0007450066160673971,7.450066160673971,bps,"7.450\,bps",outputs/backtests/turnover.parquet
-three_state_diff,\threeStateDiff,-0.0284005287295657,-0.0284005287295657,sharpe_difference,$-$0.028,outputs/robustness/robustness_grid.csv
-drop_rv_diff,\dropRvDiff,-0.0234795246873249,-0.0234795246873249,sharpe_difference,$-$0.023,outputs/robustness/robustness_grid.csv
+three_state_diff,\threeStateDiff,-0.0284005287295657,-0.0284005287295657,sharpe_difference,\ensuremath{-}0.028,outputs/robustness/robustness_grid.csv
+drop_rv_diff,\dropRvDiff,-0.0234795246873249,-0.0234795246873249,sharpe_difference,\ensuremath{-}0.023,outputs/robustness/robustness_grid.csv
 cap30_diff,\capThirtyDiff,0.0503605354543732,0.0503605354543732,sharpe_difference,0.050,outputs/robustness/robustness_grid.csv
 cap30_p,\capThirtyP,0.0111,0.0111,p_value,0.011,outputs/robustness/robustness_grid.csv
 cap30_p_holm,\capThirtyPHolm,0.1332,0.1332,p_value,0.133,outputs/robustness/robustness_grid.csv
@@ -48,7 +48,7 @@ n_secondary_metrics,\nSecondaryMetrics,5.0,5.0,count,5,outputs/inference/seconda
 n_secondary_excluding_zero,\nSecondaryExcludingZero,1.0,1.0,count,1,outputs/inference/secondary_metric_intervals.csv
 n_forecast_pairs_surviving_holm,\nForecastPairsSurvivingHolm,1.0,1.0,count,1,outputs/tables/forecast_comparisons.csv
 pre2020_diff,\preTwentyTwentyDiff,0.1052017104697877,0.1052017104697877,sharpe_difference,0.105,outputs/robustness/subperiod_descriptive.csv
-post2020_diff,\postTwentyTwentyDiff,-0.0756228536086354,-0.0756228536086354,sharpe_difference,$-$0.076,outputs/robustness/subperiod_descriptive.csv
+post2020_diff,\postTwentyTwentyDiff,-0.0756228536086354,-0.0756228536086354,sharpe_difference,\ensuremath{-}0.076,outputs/robustness/subperiod_descriptive.csv
 covid_days,\covidDays,232.0,232.0,count,232,outputs/robustness/subperiod_descriptive.csv
 tightening_days,\tighteningDays,460.0,460.0,count,460,outputs/robustness/subperiod_descriptive.csv
 oos_years,\oosYears,16.55952380952381,16.55952380952381,years,16.6,outputs/performance/performance_summary.csv
@@ -64,5 +64,5 @@ equity_corr_max,\equityCorrMax,0.919023,0.919023,correlation,0.92,outputs/tables
 a2_fallback_origins,\aTwoFallbackOrigins,4.0,4.0,count,4,outputs/covariance/covariance_audit.csv
 argmax_tolerance_disagreements,\argmaxToleranceDisagreements,144.0,144.0,count,144,outputs/robustness/argmax_counterfactual.csv
 refit_seed_changes,\refitSeedChanges,152.0,152.0,count,152,outputs/regimes/model_revision_stability.csv
-reproduction_max_difference,\reproductionMaxDifference,1.4503620526795657e-11,1.4503620526795657e-11,scientific,$1.45 \times 10^{-11}$,outputs/reproduction_comparison.json
+reproduction_max_difference,\reproductionMaxDifference,1.4503620526795657e-11,1.4503620526795657e-11,scientific,\ensuremath{1.45 \times 10^{-11}},outputs/reproduction_comparison.json
 reproduction_seed_disagreements,\reproductionSeedDisagreements,0.0,0.0,count,0,outputs/reproduction_comparison.json

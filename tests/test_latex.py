@@ -195,3 +195,20 @@ def test_generated_macros_file_is_latex_legal():
     assert names, "no macros found"
     for name in names:
         assert name.isalpha(), f"macro {name!r} contains a non-letter"
+
+
+def test_generated_macros_are_math_mode_safe():
+    """A macro containing a literal $ closes math mode inside an
+    equation and aborts the compile with no PDF. This reached CI once:
+    \primaryCiLower expanded to "$-$0.075" inside the primary-result
+    equation."""
+    from pathlib import Path
+
+    macros = Path(__file__).resolve().parents[1] / "paper" / "macros.tex"
+    if not macros.exists():
+        return
+    for line in macros.read_text(encoding="utf-8").splitlines():
+        if line.startswith("\newcommand"):
+            assert "$" not in line, (
+                f"macro body contains a literal $, unsafe in math mode: {line}"
+            )
