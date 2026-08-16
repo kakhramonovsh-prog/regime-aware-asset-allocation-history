@@ -109,6 +109,47 @@ def test_seed_reproduces_identical_draws(paired_series):
     np.testing.assert_array_equal(first, second)
 
 
+def test_same_length_samples_share_identical_index_matrices():
+    """Two specifications over the same dates must receive the SAME
+    bootstrap index matrix.
+
+    This is what makes differences across robustness specifications
+    reflect the return series rather than Monte Carlo noise.
+    """
+    n_obs, block, reps = 500, 21, 40
+    first = st.stationary_bootstrap_indices(
+        n_obs, block, reps, np.random.default_rng(12345)
+    )
+    second = st.stationary_bootstrap_indices(
+        n_obs, block, reps, np.random.default_rng(12345)
+    )
+    np.testing.assert_array_equal(first, second)
+
+
+def test_common_draws_across_two_different_return_series():
+    """Different return data, same seed and length -> identical indices,
+    so the resulting metric differences are attributable to the data."""
+    idx = pd.bdate_range("2015-01-01", periods=400)
+    rng = np.random.default_rng(0)
+    a = pd.Series(rng.normal(0.0004, 0.01, 400), index=idx)
+    b = pd.Series(rng.normal(0.0002, 0.012, 400), index=idx)
+    c = pd.Series(rng.normal(0.0003, 0.009, 400), index=idx)
+    cfg = st.BootstrapConfig(n_replications=200, batch_size=200)
+
+    spec_one = st.paired_bootstrap_differences(a, b, a, b, ("sharpe",), cfg)["sharpe"]
+    spec_two = st.paired_bootstrap_differences(a, c, a, c, ("sharpe",), cfg)["sharpe"]
+    # Same indices were used, so a shared column resampled identically:
+    # verify by reproducing the index matrix and checking one leg.
+    indices = st.stationary_bootstrap_indices(
+        len(a), cfg.mean_block, cfg.n_replications, np.random.default_rng(cfg.seed)
+    )
+    sharpe_a = st._sharpe(a.to_numpy()[indices])
+    reconstructed_one = sharpe_a - st._sharpe(b.to_numpy()[indices])
+    reconstructed_two = sharpe_a - st._sharpe(c.to_numpy()[indices])
+    np.testing.assert_allclose(spec_one, reconstructed_one, rtol=1e-12)
+    np.testing.assert_allclose(spec_two, reconstructed_two, rtol=1e-12)
+
+
 def test_different_seeds_give_different_draws(paired_series):
     net_a, net_b, excess_a, excess_b = paired_series
     other = st.BootstrapConfig(n_replications=400, batch_size=200, seed=999)

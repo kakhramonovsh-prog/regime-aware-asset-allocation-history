@@ -378,6 +378,56 @@ def fig_turnover(turnover: pd.DataFrame, path: Path) -> Path:
     return path
 
 
+def fig_robustness_forest(grid: pd.DataFrame, path: Path) -> Path:
+    """Forest plot of the Sharpe difference across robustness specs.
+
+    One row per specification, ordered as run, with the primary
+    highlighted. A single vertical reference line at zero lets the
+    reader judge sign stability and interval overlap at a glance —
+    which is the point of the exercise, not counting p < 0.05 cases.
+    """
+    frame = grid.iloc[::-1].reset_index(drop=True)   # first spec at top
+    with plt.rc_context(_RC):
+        height = max(4.5, 0.42 * len(frame) + 2.0)
+        fig, ax = plt.subplots(figsize=(9.5, height))
+
+        for i, row in frame.iterrows():
+            primary = row["specification"] == "primary"
+            color = INK if primary else SERIES_1
+            ax.plot([row["ci95_lower"], row["ci95_upper"]], [i, i],
+                    color=color, linewidth=2.0 if primary else 1.4,
+                    solid_capstyle="round", alpha=0.9)
+            ax.plot(row["sharpe_difference"], i, "o",
+                    color=color, markersize=8 if primary else 6,
+                    markeredgecolor="white", markeredgewidth=1.0, zorder=3)
+
+        ax.axvline(0, color=BASELINE, linewidth=1.0, linestyle="--")
+        ax.set_yticks(range(len(frame)))
+        labels = [
+            f"{r['specification']}" + ("  (primary)" if r["specification"] == "primary" else "")
+            for _, r in frame.iterrows()
+        ]
+        ax.set_yticklabels(labels, fontsize=8.5)
+        for tick, (_, row) in zip(ax.get_yticklabels(), frame.iterrows()):
+            if row["specification"] == "primary":
+                tick.set_fontweight("bold")
+                tick.set_color(INK)
+        ax.set_xlabel("Sharpe difference: regime-aware minus rolling Ledoit-Wolf")
+        ax.set_title("Robustness: Sharpe difference across specifications\n"
+                     "(one factor varied at a time, net of 10 bps costs)")
+        ax.set_ylim(-0.8, len(frame) - 0.2)
+        ax.grid(axis="y", visible=False)
+        _despine(ax)
+        fig.text(0.01, -0.02,
+                 "Dashed line at zero. Intervals are paired stationary-bootstrap 95% "
+                 "percentile intervals. No specification may be promoted into the "
+                 "headline conclusion.",
+                 fontsize=7.5, color=MUTED, ha="left", va="top")
+        fig.savefig(path)
+        plt.close(fig)
+    return path
+
+
 def fig_regime_probabilities(
     realtime: pd.DataFrame,
     expost: pd.DataFrame,
