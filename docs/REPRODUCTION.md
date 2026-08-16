@@ -265,15 +265,28 @@ multiple starts converging on the same optimum). The rule is therefore
 justified as insurance against a ranking flip that these two runs did
 not produce, not as a fix for an observed failure.
 
-A related observation supports the width of the band. The two rules
-**disagree with each other at 144 of 200 origins within a single run**,
-because the tolerance (1e-10 relative, roughly 5e-7 in absolute terms
-here) is far wider than exact equality: `argmax` takes the strictly
-highest log-likelihood while the tolerance rule takes the lowest seed
-among fits statistically indistinguishable from it. Those two rules
-select different seeds most of the time, and every reported number still
-reproduced. Fits inside the band are therefore materially equivalent,
-which is exactly what a well-calibrated tolerance should deliver.
+The two rules **disagree with each other at 144 of 200 origins within a
+single run**, because the tolerance (1e-10 relative, roughly 5e-7
+absolute here) is far wider than exact equality: `argmax` takes the
+strictly highest log-likelihood while the tolerance rule takes the
+lowest seed among fits within the band.
+
+**What that disagreement does and does not establish.** Each rule was
+stable across the two runs; that is established. Whether the *results*
+are unchanged under argmax selection is **not** established, because the
+argmax-selected fits were never propagated through Phases 6-11. Doing so
+would require rerunning the regime, covariance, weight, accounting,
+performance and inference phases under the alternative rule and
+comparing the outputs. Until that is done, no claim is made that fits
+inside the band are materially equivalent.
+
+| Claim | Status |
+|---|---|
+| Plain argmax reproduced across both runs | Established |
+| Tolerance selection reproduced across both runs | Established |
+| Tolerance was necessary for reproducibility | **Not demonstrated** |
+| The two rules selected different seeds at 144/200 origins | Established |
+| Full results unchanged under argmax selection | **Not tested** |
 
 The counterfactual is reproducible: `python
 scripts/test_argmax_counterfactual.py RUN_A RUN_B`, with results in
