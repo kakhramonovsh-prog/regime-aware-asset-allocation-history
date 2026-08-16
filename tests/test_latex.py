@@ -81,10 +81,11 @@ def test_plain_text_is_unchanged():
 # Label registry
 # ---------------------------------------------------------------------------
 
-def test_registered_identifiers_resolve():
+def test_registered_identifiers_resolve_to_raw_text():
+    """label_for returns backend-neutral text, unescaped."""
     assert latex.label_for("regime_minvar") == "Regime-aware min-var"
     assert latex.label_for("sharpe") == "Sharpe"
-    assert latex.label_for("cap_30pct") == r"30\% cap"
+    assert latex.label_for("cap_30pct") == "30% cap"
 
 
 def test_unknown_identifier_raises_rather_than_falling_back():
@@ -94,23 +95,44 @@ def test_unknown_identifier_raises_rather_than_falling_back():
         latex.label_for("some_new_metric")
 
 
-def test_no_registered_label_contains_a_bare_special_character():
-    """Every label must already be LaTeX-safe: bare specials would break
-    the build exactly as the raw identifiers did."""
+def test_raw_labels_carry_no_latex_markup():
+    """The registry is backend-neutral. A pre-escaped label would be
+    escaped a second time at serialization."""
     for registry in latex._REGISTRIES:
         for key, label in registry.items():
-            for character in "_&#":
-                bare = [
-                    i for i, ch in enumerate(label)
-                    if ch == character and (i == 0 or label[i - 1] != "\\")
-                ]
-                assert not bare, f"{key}: bare '{character}' in {label!r}"
-            # A percent must always be escaped; an unescaped one comments
-            # out the rest of the line.
-            for i, ch in enumerate(label):
-                if ch == "%":
-                    assert i > 0 and label[i - 1] == "\\", \
-                        f"{key}: unescaped '%' in {label!r}"
+            assert "\\" not in label, f"{key}: LaTeX markup in raw label {label!r}"
+            assert "$" not in label, f"{key}: math markup in raw label {label!r}"
+
+
+def test_serialized_labels_are_latex_safe():
+    """Inspect the escaped OUTPUT rather than restricting the raw text."""
+    for registry in latex._REGISTRIES:
+        for key in registry:
+            serialized = latex.latex_label_for(key)
+            for i, character in enumerate(serialized):
+                if character in "%&#_":
+                    assert i > 0 and serialized[i - 1] == "\\", \
+                        f"{key}: bare {character!r} in {serialized!r}"
+            assert serialized.count("$") % 2 == 0, \
+                f"{key}: unbalanced math mode in {serialized!r}"
+
+
+def test_percent_label_serializes_once():
+    assert latex.label_for("cap_30pct") == "30% cap"
+    assert latex.latex_label_for("cap_30pct") == r"30\% cap"
+
+
+def test_unicode_math_becomes_latex_math():
+    assert latex.label_for("sharpe_difference") == "Δ Sharpe"
+    assert latex.latex_label_for("sharpe_difference") == r"$\Delta$ Sharpe"
+    assert latex.latex_label_for("neff_kappa_30") == r"$\kappa$ = 30"
+
+
+def test_serialization_must_run_exactly_once():
+    """Documents why to_latex lives only at the output boundary."""
+    once = latex.to_latex("Max DD (%)")
+    assert once == r"Max DD (\%)"
+    assert latex.to_latex(once) != once, "double serialization must corrupt"
 
 
 def test_every_strategy_in_the_ladder_is_registered():

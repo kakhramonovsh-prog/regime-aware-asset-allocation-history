@@ -24,6 +24,12 @@ jobs:
     container:
       image: texlive/texlive:TL2024-historic
 
+    defaults:
+      run:
+        # Strict shell: a failure anywhere in a pipeline fails the step,
+        # rather than returning the last command's (often successful) code.
+        shell: bash -euo pipefail {0}
+
     steps:
       - uses: actions/checkout@v5
 

@@ -91,6 +91,18 @@ def main() -> None:
             "The PDF cannot be built or inspected without it."
         )
 
+    # Clean auxiliary files first. A stale .bbl, .aux or PDF can mask a
+    # failure completely: the previous build produced a PDF with
+    # unresolved references because a broken .bib left no .bbl and the
+    # old artifacts filled the gap.
+    print("\nCleaning auxiliary files...")
+    run([latexmk, "-C"], PAPER)
+    for pattern in ("*.aux", "*.bbl", "*.blg", "*.out", "*.toc", "*.fls",
+                    "*.fdb_latexmk", "main.pdf"):
+        for stale in PAPER.glob(pattern):
+            stale.unlink()
+            print(f"  removed {stale.name}")
+
     print("\nCompiling with latexmk (halt-on-error)...")
     result = run(
         [latexmk, "-pdf", "-halt-on-error", "-interaction=nonstopmode",
@@ -140,11 +152,74 @@ def main() -> None:
             f"(worst {max(bad_boxes):.1f}pt)"
         )
 
+    # ------------------------------------------------------------------
+    # 4b. BibTeX must actually have run and produced a bibliography
+    # ------------------------------------------------------------------
+    print("\nChecking the bibliography...")
+    source_text = "".join(
+        (PAPER / name).read_text(encoding="utf-8")
+        for name in ("main.tex", "_sections_intro.tex", "_sections_results.tex")
+    )
+    has_citations = bool(re.search(r"\\cite[tp]?\{", source_text))
+    bbl = PAPER / "main.bbl"
+    blg = PAPER / "main.blg"
+
+    if has_citations:
+        if not bbl.exists() or bbl.stat().st_size == 0:
+            failures.append(
+                "manuscript contains citations but main.bbl is missing or "
+                "empty: BibTeX did not produce a bibliography"
+            )
+            print("  main.bbl: MISSING OR EMPTY")
+        else:
+            print(f"  main.bbl: {bbl.stat().st_size} bytes")
+
+    if blg.exists():
+        blg_text = blg.read_text(encoding="utf-8", errors="replace")
+        shutil.copy2(blg, LOG_DIR / "main.blg")
+        bib_errors = re.findall(r"^(I found no|Warning--|.*---line \d+ of file)",
+                                blg_text, re.MULTILINE)
+        hard_errors = [line for line in blg_text.splitlines()
+                       if "error" in line.lower() or line.startswith("I found no")]
+        print(f"  main.blg: {len(bib_errors)} warning(s), "
+              f"{len(hard_errors)} error line(s)")
+        if hard_errors:
+            for line in hard_errors[:5]:
+                print(f"    {line.strip()}")
+            failures.append(f"BibTeX reported {len(hard_errors)} error(s)")
+    elif has_citations:
+        failures.append("no main.blg: BibTeX never ran")
+
     pdf = PAPER / "main.pdf"
     if pdf.exists():
         size_kb = pdf.stat().st_size / 1024
         print(f"  PDF produced: {size_kb:.0f} KB")
         shutil.copy2(pdf, LOG_DIR / "main.pdf")
+
+        # ------------------------------------------------------------------
+        # 4c. The rendered PDF must contain no unresolved markers. This is
+        # what caught "Equation (??)" after the log gate passed it.
+        # ------------------------------------------------------------------
+        try:
+            import pymupdf
+
+            document = pymupdf.open(pdf)
+            text = "".join(page.get_text() for page in document)
+            document.close()
+            unresolved = re.findall(r"\(\?\?\)|\[\?\?\]|\?\?(?=[\s.,;)])", text)
+            print(f"  unresolved '??' markers in the PDF text: {len(unresolved)}")
+            if unresolved:
+                failures.append(
+                    f"{len(unresolved)} unresolved reference marker(s) rendered "
+                    "in the PDF"
+                )
+            missing_citation = re.findall(r"\[\?\]", text)
+            if missing_citation:
+                failures.append(
+                    f"{len(missing_citation)} unresolved citation marker(s) '[?]'"
+                )
+        except ImportError:
+            print("  (pymupdf not installed; skipping PDF text scan)")
     else:
         failures.append("no PDF produced")
 

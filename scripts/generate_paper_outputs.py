@@ -77,7 +77,7 @@ def humanize(value: str) -> str:
     to the raw string, which is how an unescaped underscore
     previously reached the compiler.
     """
-    return tex_util.label_for(value)
+    return tex_util.latex_label_for(value)
 
 
 def main() -> None:

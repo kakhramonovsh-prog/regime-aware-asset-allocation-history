@@ -47,6 +47,24 @@ def main() -> None:
 
     problems: list[str] = []
 
+    # Every key actually CITED must exist in both the bibliography and
+    # the audit. A key present in one but not the other is how an
+    # unverified citation slips into the manuscript.
+    sources = "".join(
+        (PAPER / name).read_text(encoding="utf-8")
+        for name in ("main.tex", "_sections_intro.tex", "_sections_results.tex")
+    )
+    cited = {
+        key.strip()
+        for group in re.findall(r"\\cite[tp]?\{([^}]+)\}", sources)
+        for key in group.split(",")
+    }
+    print(f"Keys cited in the manuscript: {len(cited)}")
+    if cited - bib_keys:
+        problems.append(f"cited but absent from .bib: {sorted(cited - bib_keys)}")
+    if cited - audit_keys:
+        problems.append(f"cited but absent from the audit: {sorted(cited - audit_keys)}")
+
     missing_from_audit = bib_keys - audit_keys
     missing_from_bib = audit_keys - bib_keys
     if missing_from_audit:
