@@ -1,8 +1,32 @@
 {
-  "pdf_sha256": "3b653741427bd63f84d345e09957bb7e07b840c230ee1ffcd60e94b1c85ef516",
+  "round": 4,
+  "status": "PASSED - no defects",
+  "pdf_sha256": "3e7e5c4e54956dbd7dcd2f8186a24b04ba7696497f594e5f9240c8d79b2d73fa",
   "page_count": 15,
-  "bytes": 347044,
-  "ci_run_id": "31975553015",
-  "commit": "ca0a7f140b22ca1cc56847cbc5bfb85af9336cb6",
-  "inspection_date": "2026-08-16"
+  "bytes": 346207,
+  "ci_run_id": "31979428122",
+  "commit_built": "deea4bb",
+  "commit_at_inspection": "deea4bb0aa6c2a8d70682229f88cd295055d1e36",
+  "inspection_date": "2026-08-16",
+  "note": "Inspection attests to this exact PDF. Any change to paper/, src/ or the build scripts invalidates it and requires a new build, a new hash and a fresh pass.",
+  "history": [
+    {
+      "round": 1,
+      "run": "31975553015",
+      "pdf_sha256": "3b653741427bd63f84d345e09957bb7e07b840c230ee1ffcd60e94b1c85ef516",
+      "result": "FAILED - 7 defects"
+    },
+    {
+      "round": 2,
+      "run": "31978675959",
+      "pdf_sha256": "7019d029da61acebab724c290ca7a1297500fe174afab7746f80cab5e3c5be0a",
+      "result": "FAILED - 7 defects"
+    },
+    {
+      "round": 3,
+      "run": "31979149256",
+      "pdf_sha256": "5c7795e458c578ecd993a4507f56421b97ac6d2e4814f8e6cbb086e744853156",
+      "result": "PASSED with 1 wording residual"
+    }
+  ]
 }

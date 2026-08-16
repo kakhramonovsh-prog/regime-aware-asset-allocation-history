@@ -214,3 +214,42 @@ clause, the last instance of D9's pattern. Reworded to "Among the 5
 secondary metric intervals, only annualized volatility excludes zero."
 This is a source change, so it invalidates the Round 3 artifact and
 requires one confirming pass on the next build.
+
+---
+
+## Round 4 — PASSED, no defects
+
+| Field | Value |
+|---|---|
+| PDF SHA-256 | `3e7e5c4e54956dbd7dcd2f8186a24b04ba7696497f594e5f9240c8d79b2d73fa` |
+| Commit | `deea4bb0aa6c2a8d70682229f88cd295055d1e36` |
+| CI run | 31979428122 |
+| Page count | 15 |
+| Inspection date | 2026-08-16 |
+| Automated gate | PASSED |
+| Number census | PASSED |
+| Visual result | **No defects** |
+
+Confirming pass for D14. Page 9 now reads "Among the 5 secondary metric
+intervals, only annualized volatility excludes zero". The page begins
+and ends on the same content as Round 3 and the document is still 15
+pages, so the edit reflowed within its own paragraph and nothing
+repaginated.
+
+The inspected PDF and its build log are preserved at
+`outputs/paper_build/inspected/`, and `inspected_artifact.json` records
+the hash, run, commit and the full four-round history.
+
+### Standing rule
+
+This pass attests to PDF `3e7e5c4e...73fa` and to nothing else. Any
+change to `paper/`, `src/` or the build scripts invalidates it: a
+one-word edit can move a float and repaginate everything after it. The
+next release candidate needs a new build, a new hash and a fresh pass.
+
+### Release gate still open
+
+The manuscript cannot be tagged `v0.13.0-manuscript` on visual grounds
+alone. `scripts/check_citations.py --release` still blocks on 14
+references whose bibliographic details and supporting claims are not
+yet verified.
