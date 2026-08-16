@@ -46,6 +46,9 @@ jobs:
       # The repository ships generated tables and macros, so the paper
       # builds without vendor data. --skip-regen avoids requiring the
       # frozen snapshot, which cannot be published.
+      - name: Citation audit (draft mode; blocks only at release)
+        run: python scripts/check_citations.py
+
       - name: Build the paper (acceptance gate)
         run: python scripts/build_paper.py --skip-regen
 

@@ -1,17 +1,16 @@
-\begin{table}
-\caption{table1 performance}
+\begin{table}[htbp]
+\caption{Realized performance, 2010--2026, net of 10 basis points. Annualized figures; maximum drawdown from the net wealth path.}
 \label{tab:table1_performance}
-\begin{tabular}{lllllll}
+\begin{tabular}{lrrrrrr}
 \toprule
-metric & ann_volatility & cagr & calmar & max_drawdown & sharpe & sortino \\
-label &  &  &  &  &  &  \\
+ & CAGR (\%) & Volatility (\%) & Sharpe & Sortino & Max DD (\%) & Calmar \\
 \midrule
-equal_weight & 11.90 & 11.61 & 0.509 & -22.80 & 0.857 & 1.214 \\
-ewma_scaled_minvar & 7.54 & 8.70 & 0.503 & -17.30 & 0.945 & 1.356 \\
-regime_minvar & 7.71 & 8.73 & 0.501 & -17.44 & 0.929 & 1.331 \\
-rolling_lw_minvar & 7.88 & 8.71 & 0.500 & -17.41 & 0.908 & 1.293 \\
-static_6040 & 9.78 & 9.82 & 0.463 & -21.20 & 0.852 & 1.207 \\
-static_minvar & 8.23 & 9.04 & 0.471 & -19.17 & 0.910 & 1.301 \\
+Equal weight & 11.61 & 11.90 & 0.857 & 1.214 & -22.80 & 0.509 \\
+60/40 & 9.82 & 9.78 & 0.852 & 1.207 & -21.20 & 0.463 \\
+Static min-var & 9.04 & 8.23 & 0.910 & 1.301 & -19.17 & 0.471 \\
+Rolling LW min-var & 8.71 & 7.88 & 0.908 & 1.293 & -17.41 & 0.500 \\
+EWMA-scaled min-var & 8.70 & 7.54 & 0.945 & 1.356 & -17.30 & 0.503 \\
+Regime-aware min-var & 8.73 & 7.71 & 0.929 & 1.331 & -17.44 & 0.501 \\
 \bottomrule
 \end{tabular}
 \end{table}

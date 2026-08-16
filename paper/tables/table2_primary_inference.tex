@@ -1,12 +1,11 @@
-\begin{table}
-\caption{table2 primary inference}
+\begin{table}[htbp]
+\caption{Preregistered primary comparison. Paired stationary bootstrap, 10{,}000 replications, mean block 21 trading days, seed 12345, on daily excess returns.}
 \label{tab:table2_primary_inference}
-\begin{tabular}{lllll}
+\begin{tabular}{lrrrr}
 \toprule
-metric & ci95_lower & ci95_upper & p_value & sharpe_difference \\
-label &  &  &  &  \\
+ & $\Delta$ Sharpe & CI lower & CI upper & $p$ \\
 \midrule
-regime_minvar minus rolling_lw_minvar & -0.075 & 0.115 & 0.327 & 0.021 \\
+Regime-aware $-$ rolling LW & 0.021 & -0.075 & 0.115 & 0.327 \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -56,6 +56,64 @@ def macro_name(key: str) -> str:
     return parts[0] + "".join(p.capitalize() for p in parts[1:])
 
 
+# Machine identifiers must never reach LaTeX: an underscore is a
+# math-mode subscript and breaks the build. These maps also make the
+# tables readable, which a paper table has to be regardless.
+STRATEGY_LABELS = {
+    "equal_weight": "Equal weight",
+    "static_6040": "60/40",
+    "static_minvar": "Static min-var",
+    "rolling_lw_minvar": "Rolling LW min-var",
+    "ewma_scaled_minvar": "EWMA-scaled min-var",
+    "regime_minvar": "Regime-aware min-var",
+    "regime_minvar minus rolling_lw_minvar": "Regime-aware $-$ rolling LW",
+}
+METRIC_LABELS = {
+    "cagr": "CAGR (\\%)",
+    "ann_volatility": "Volatility (\\%)",
+    "sharpe": "Sharpe",
+    "sortino": "Sortino",
+    "max_drawdown": "Max DD (\\%)",
+    "calmar": "Calmar",
+    "sharpe_difference": "$\\Delta$ Sharpe",
+    "vol_difference": "$\\Delta$ Volatility (pp)",
+    "cagr_difference": "$\\Delta$ CAGR (pp)",
+    "maxdd_difference": "$\\Delta$ Max DD (pp)",
+    "ci95_lower": "CI lower",
+    "ci95_upper": "CI upper",
+    "p_value": "$p$",
+}
+SPEC_LABELS = {
+    "primary": "Primary", "hmm_3_states": "Three states",
+    "drop_vix": "Drop VIX", "drop_realized_vol": "Drop realized vol",
+    "rolling_5y_window": "Rolling 5y window", "cap_30pct": "30\\% cap",
+    "cap_50pct": "50\\% cap", "neff_kappa_30": "$\\kappa = 30$",
+    "neff_kappa_120": "$\\kappa = 120$", "core_universe": "Core universe",
+    "alt_seeds_100": "Alternative seeds",
+    "a2_accept_as_estimated": "Accept degenerate fits",
+    "a3_total_covariance": "Total covariance mixture",
+}
+CAPTIONS = {
+    "table1_performance": "Realized performance, 2010--2026, net of 10 basis "
+        "points. Annualized figures; maximum drawdown from the net wealth path.",
+    "table2_primary_inference": "Preregistered primary comparison. Paired "
+        "stationary bootstrap, 10{,}000 replications, mean block 21 trading "
+        "days, seed 12345, on daily excess returns.",
+    "table3_secondary_intervals": "Secondary metric differences, regime-aware "
+        "minus rolling Ledoit--Wolf. Unadjusted intervals.",
+    "table4_robustness_grid": "Robustness grid: thirteen specifications, each "
+        "varying one factor from the primary model.",
+}
+
+
+def humanize(value: str) -> str:
+    """Map a machine identifier to a LaTeX-safe display label."""
+    for mapping in (STRATEGY_LABELS, METRIC_LABELS, SPEC_LABELS):
+        if value in mapping:
+            return mapping[value]
+    return value.replace("_", " ")
+
+
 def main() -> None:
     (PAPER / "tables").mkdir(parents=True, exist_ok=True)
     (PAPER / "figures").mkdir(parents=True, exist_ok=True)
@@ -146,10 +204,27 @@ def main() -> None:
         artifacts.append(csv_path)
 
         tex = frame.pivot(index="label", columns="metric", values="formatted")
+        # Preserve the declared row order rather than pandas' alphabetical
+        # sort, then replace every machine identifier with a display label
+        # so no underscore reaches LaTeX.
+        order = list(dict.fromkeys(frame["label"]))
+        tex = tex.reindex(order)
+        column_order = [c for c in dict.fromkeys(frame["metric"]) if c in tex.columns]
+        tex = tex[column_order]
+        tex.index = [humanize(v) for v in tex.index]
+        tex.columns = [humanize(c) for c in tex.columns]
+        tex.index.name = None
+        tex.columns.name = None
+
         tex_path = PAPER / "tables" / f"{name}.tex"
         tex_path.write_text(
-            tex.to_latex(na_rep="", caption=name.replace("_", " "),
-                         label=f"tab:{name}"),
+            tex.to_latex(
+                na_rep="",
+                caption=CAPTIONS.get(name, name.replace("_", " ")),
+                label=f"tab:{name}",
+                column_format="l" + "r" * len(tex.columns),
+                position="htbp",
+            ),
             encoding="utf-8",
         )
         artifacts.append(tex_path)
