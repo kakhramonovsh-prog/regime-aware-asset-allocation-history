@@ -403,16 +403,20 @@ def fig_robustness_forest(grid: pd.DataFrame, path: Path) -> Path:
 
         ax.axvline(0, color=BASELINE, linewidth=1.0, linestyle="--")
         ax.set_yticks(range(len(frame)))
-        labels = [
-            f"{r['specification']}" + ("  (primary)" if r["specification"] == "primary" else "")
-            for _, r in frame.iterrows()
-        ]
+        # Display labels from the shared registry, not machine
+        # identifiers: the same underscored names that broke the LaTeX
+        # build read as unfinished in a figure.
+        from src.latex import label_for
+
+        labels = [label_for(r["specification"]) for _, r in frame.iterrows()]
         ax.set_yticklabels(labels, fontsize=8.5)
         for tick, (_, row) in zip(ax.get_yticklabels(), frame.iterrows()):
             if row["specification"] == "primary":
                 tick.set_fontweight("bold")
                 tick.set_color(INK)
-        ax.set_xlabel("Sharpe difference: regime-aware minus rolling Ledoit-Wolf")
+        # Bold weight already marks the primary row; a "(primary)"
+        # suffix on a row labelled "Primary" was redundant.
+        ax.set_xlabel("Sharpe difference: regime-aware minus rolling Ledoit–Wolf")
         ax.set_title("Robustness: Sharpe difference across specifications\n"
                      "(one factor varied at a time, net of 10 bps costs)")
         ax.set_ylim(-0.8, len(frame) - 0.2)

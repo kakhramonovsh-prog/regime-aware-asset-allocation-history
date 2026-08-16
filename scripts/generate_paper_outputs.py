@@ -177,6 +177,10 @@ def main() -> None:
         tex = tex.reindex(order)
         column_order = [c for c in dict.fromkeys(frame["metric"]) if c in tex.columns]
         tex = tex[column_order]
+        tex = tex.map(
+            lambda cell: "$-$" + cell[1:]
+            if isinstance(cell, str) and cell.startswith("-") else cell
+        )
         tex.index = [humanize(v) for v in tex.index]
         tex.columns = [humanize(c) for c in tex.columns]
         tex.index.name = None
@@ -225,6 +229,9 @@ def main() -> None:
         "hac_annual_return_diff": float(hac21["annualized_arithmetic_difference"]),
         "regime_sharpe": float(net10.loc["regime_minvar", "sharpe"]),
         "comparator_sharpe": float(net10.loc["rolling_lw_minvar", "sharpe"]),
+        "vol_difference_magnitude": abs(float(
+            secondary.loc[secondary["metric"] == "ann_volatility",
+                          "observed_difference"].iloc[0])),
         "regime_half_turnover": float(
             regime_turnover["half_turnover_reporting"].sum() / years),
         "comparator_half_turnover": float(
@@ -236,6 +243,7 @@ def main() -> None:
         "primary_ci_upper": "ci95_upper",
         "primary_p_value": "p_value",
         "vol_difference": "vol_difference",
+        "vol_difference_magnitude": "vol_difference",
         "hac_annual_return_diff": "mean_return_difference_annualized",
         "regime_sharpe": "sharpe",
         "comparator_sharpe": "sharpe",
@@ -252,6 +260,10 @@ def main() -> None:
     ]
     for key, raw in headline.items():
         _, unit, formatted = un.to_display(raw, units_for[key])
+        # A leading text hyphen is not a minus sign; the figures already
+        # use a typographic minus, so the prose must match.
+        if formatted.startswith("-"):
+            formatted = "$-$" + formatted[1:]
         # '%' is a LaTeX comment character: an unescaped one silently
         # swallows the rest of the line, including the closing brace.
         unit_tex = unit.replace("%", r"\%")
