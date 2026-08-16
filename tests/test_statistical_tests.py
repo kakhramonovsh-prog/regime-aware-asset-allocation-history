@@ -216,6 +216,38 @@ def test_hac_operates_on_paired_differences(paired_series):
     assert result["ci95_lower_daily"] < result["mean_daily_difference"] < result["ci95_upper_daily"]
 
 
+def test_hac_t_statistic_invariant_to_annualization(paired_series):
+    """Annualizing both the estimate and the standard error by the same
+    linear factor must leave the t-statistic and p-value unchanged.
+
+    Guards against reporting an annualized mean against a daily (or
+    sqrt-scaled) standard error, which would silently inflate or deflate
+    significance.
+    """
+    from scipy import stats as sps
+
+    net_a, net_b, _, _ = paired_series
+    result = st.hac_mean_difference(net_a, net_b, lags=21)
+
+    t_daily = result["mean_daily_difference"] / result["hac_standard_error_daily"]
+    annualized_se = result["hac_standard_error_daily"] * st.TRADING_DAYS
+    t_annual = result["annualized_arithmetic_difference"] / annualized_se
+
+    assert t_daily == pytest.approx(t_annual, rel=1e-12)
+    assert t_daily == pytest.approx(result["t_statistic"], rel=1e-9)
+
+    manual_p = 2 * (1 - sps.norm.cdf(abs(t_daily)))
+    assert manual_p == pytest.approx(result["p_value_two_sided"], abs=1e-6)
+
+    # The annualized interval is the daily interval scaled by the same factor.
+    assert result["ci95_lower_annualized"] == pytest.approx(
+        result["ci95_lower_daily"] * st.TRADING_DAYS, rel=1e-12
+    )
+    assert result["ci95_upper_annualized"] == pytest.approx(
+        result["ci95_upper_daily"] * st.TRADING_DAYS, rel=1e-12
+    )
+
+
 def test_hac_lag_choice_changes_standard_error(paired_series):
     net_a, net_b, _, _ = paired_series
     ses = {

@@ -63,22 +63,51 @@ differ? Paired daily net return differences, Newey-West standard errors:
 
 | HAC lags | Role | Annualized difference | 95% interval | p (two-sided) |
 |---|---|---|---|---|
-| **21** | **PRIMARY** | **+0.0031%** | [−0.707%, +0.713%] | 0.993 |
-| 5 | sensitivity | +0.0031% | [−0.713%, +0.719%] | 0.993 |
-| 42 | sensitivity | +0.0031% | [−0.705%, +0.711%] | 0.993 |
+| **21** | **PRIMARY** | **+0.314 bps** | [−70.7, +71.3] bps | 0.993 |
+| 5 | sensitivity | +0.314 bps | [−71.3, +71.9] bps | 0.993 |
+| 42 | sensitivity | +0.314 bps | [−70.5, +71.1] bps | 0.993 |
 
-The annualized arithmetic return difference is **3.1 basis points** with
-a p-value of 0.993 — as close to exactly zero as this data could
-produce. Regime conditioning did not change returns in any detectable
-way, which is consistent with the Phase 10 finding that the two
-strategies' CAGRs differ by 0.018 pp.
+The annualized arithmetic return difference is **0.314 basis points**
+against an annualized HAC standard error of **36.2 bps** — the estimate
+sits **0.0087 standard errors from zero**, which is why the p-value is
+0.993. Regime conditioning did not change returns in any detectable way,
+consistent with the Phase 10 finding that the two CAGRs differ by
+0.018 pp.
+
+**Scale verification.** Because a p-value that close to one invites the
+suspicion of a scaling error, the quantities are shown explicitly and
+the equivalence is unit-tested:
+
+| Quantity | Value |
+|---|---|
+| Daily mean difference | 1.246e-07 |
+| Daily HAC standard error | 1.437e-05 |
+| Annualized mean difference (×252) | 3.140e-05 (0.314 bps) |
+| Annualized HAC standard error (×252) | 3.622e-03 (36.2 bps) |
+| t on the daily scale | 0.0086713 |
+| t on the annualized scale | **0.0086713** |
+| Two-sided p (statsmodels / manual normal) | 0.993081 / 0.993081 |
+
+Both the estimate and its standard error are annualized by the same
+linear factor of 252, so the t-statistic and p-value are invariant to
+scale; a test asserts this equality and would fail if an annualized
+mean were ever compared against a daily or √252-scaled standard error.
+The p-value of 0.993 is retained as correct.
 
 **Diebold-Mariano is deliberately not applied here.** DM compares
 forecast losses, which is the Phase 5 exercise; it is not a valid test
 of whether one investment strategy outperformed another. A test asserts
 no DM function exists in the inference module.
 
-## 4. Secondary metric intervals
+## 4. Secondary family A — other metrics, same comparison (unadjusted)
+
+**This is a distinct family from §5.** Here the *comparison* is fixed
+(regime-aware vs rolling Ledoit-Wolf at 10 bps) and the *metric* varies.
+These intervals are **unadjusted for multiplicity**. Section 5 holds the
+metric fixed (Sharpe) and varies the comparison, with Holm adjustment
+applied there. Readers should not read the two sections as
+contradictory: they answer different questions and carry different
+adjustment regimes.
 
 Paired bootstrap differences, regime-aware minus rolling Ledoit-Wolf:
 
@@ -95,28 +124,33 @@ Paired bootstrap differences, regime-aware minus rolling Ledoit-Wolf:
 for drawdown and Calmar describe chronologies other than the realized
 one and should be read with particular caution.
 
-**The one difference whose interval excludes zero is the volatility
-reduction**: regime conditioning lowered annualized volatility by
-0.175 pp (95% interval 0.033 to 0.327 pp lower). Three caveats belong
-with that finding:
+The only interval in this family that excludes zero is the volatility
+difference: annualized volatility 0.175 pp lower (95% interval 0.033 to
+0.327 pp lower). The correct characterization is:
 
-1. It is a **secondary** outcome, not the preregistered primary one.
-2. Six secondary metrics were examined; at 95% confidence roughly 0.3
-   false exclusions would be expected by chance alone.
-3. Against those caveats, it is also the outcome the mechanism
-   *predicts* — a variance minimizer given extra information about the
-   variance should reduce variance — which makes it the most credible
-   of the secondary results rather than an incidental one.
+> **The annualized-volatility difference is suggestive and consistent
+> with the model's mechanism, but it is a secondary, unadjusted interval
+> among multiple examined metrics and should not be treated as
+> confirmatory evidence.**
 
-The economically coherent reading is that **regime conditioning did what
-it was designed to do (reduce risk), but the effect was too small
-relative to sampling noise to establish an improvement in risk-adjusted
-return once trading costs were paid.**
+It is **not** described as statistically established, because it has not
+survived any explicitly defined multiplicity adjustment. Six metrics
+were examined without adjustment; at 95% confidence roughly 0.3 false
+exclusions are expected by chance alone. What raises it above an
+incidental finding is that it is the outcome the mechanism *predicts* —
+a variance minimizer given additional information about variance should
+reduce variance — not that its interval happened to exclude zero.
 
-## 5. Secondary comparison family (Holm-adjusted)
+The economically coherent reading is that **regime conditioning appears
+to have done what it was designed to do (reduce risk), but the effect
+was too small relative to sampling noise to establish an improvement in
+risk-adjusted return once trading costs were paid.**
 
-Non-confirmatory comparisons, with Holm adjustment across the family of
-seven:
+## 5. Secondary family B — other comparisons, same metric (Holm-adjusted)
+
+**Distinct from §4.** Here the *metric* is fixed (Sharpe) and the
+*comparison* varies across strategies and cost levels. Holm adjustment
+is applied across this family of seven.
 
 | Comparison | Cost | Difference | 95% interval | p (centered) | p (Holm) |
 |---|---|---|---|---|---|
@@ -159,14 +193,14 @@ which would be impossible under independent resampling.
 > construction improve out-of-sample risk-adjusted performance relative
 > to conventional static allocation?**
 
-On this evidence: **not demonstrably.** Regime conditioning produced a
-measurable and statistically credible reduction in volatility
-(−0.175 pp annualized, interval excluding zero), but the resulting
-Sharpe improvement of +0.021 is not distinguishable from zero
-(interval −0.075 to +0.115), and the return difference is essentially
-exactly zero (3.1 bps annualized, p = 0.993). Higher turnover consumed
-a substantial share of the gross advantage: the point estimate falls
-from +0.031 at zero cost to +0.011 at 20 bps.
+On this evidence: **not demonstrably.** The confirmatory Sharpe
+difference of +0.021 is not distinguishable from zero (interval −0.075
+to +0.115), and the return difference is essentially exactly zero
+(0.314 bps annualized, p = 0.993). A suggestive but unadjusted secondary
+interval indicates lower volatility (−0.175 pp annualized), consistent
+with the mechanism but not confirmatory on its own. Higher turnover
+consumed a substantial share of the gross advantage: the point estimate
+falls from +0.031 at zero cost to +0.011 at 20 bps.
 
 This is a negative result on the preregistered hypothesis, and it is
 reported as such. The power limitation is real and was anticipated in
