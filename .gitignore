@@ -39,3 +39,4 @@ Thumbs.db
 .vscode/
 .idea/
 paper/number_census_template.csv
+outputs/paper_build/ci_artifact/
