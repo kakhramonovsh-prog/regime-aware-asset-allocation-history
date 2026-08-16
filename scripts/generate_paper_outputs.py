@@ -32,6 +32,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 import pandas as pd  # noqa: E402
 
+from src import latex as tex_util  # noqa: E402
 from src import units as un  # noqa: E402
 from src.eda import sha256_of  # noqa: E402
 
@@ -56,43 +57,6 @@ def macro_name(key: str) -> str:
     return parts[0] + "".join(p.capitalize() for p in parts[1:])
 
 
-# Machine identifiers must never reach LaTeX: an underscore is a
-# math-mode subscript and breaks the build. These maps also make the
-# tables readable, which a paper table has to be regardless.
-STRATEGY_LABELS = {
-    "equal_weight": "Equal weight",
-    "static_6040": "60/40",
-    "static_minvar": "Static min-var",
-    "rolling_lw_minvar": "Rolling LW min-var",
-    "ewma_scaled_minvar": "EWMA-scaled min-var",
-    "regime_minvar": "Regime-aware min-var",
-    "regime_minvar minus rolling_lw_minvar": "Regime-aware $-$ rolling LW",
-}
-METRIC_LABELS = {
-    "cagr": "CAGR (\\%)",
-    "ann_volatility": "Volatility (\\%)",
-    "sharpe": "Sharpe",
-    "sortino": "Sortino",
-    "max_drawdown": "Max DD (\\%)",
-    "calmar": "Calmar",
-    "sharpe_difference": "$\\Delta$ Sharpe",
-    "vol_difference": "$\\Delta$ Volatility (pp)",
-    "cagr_difference": "$\\Delta$ CAGR (pp)",
-    "maxdd_difference": "$\\Delta$ Max DD (pp)",
-    "ci95_lower": "CI lower",
-    "ci95_upper": "CI upper",
-    "p_value": "$p$",
-}
-SPEC_LABELS = {
-    "primary": "Primary", "hmm_3_states": "Three states",
-    "drop_vix": "Drop VIX", "drop_realized_vol": "Drop realized vol",
-    "rolling_5y_window": "Rolling 5y window", "cap_30pct": "30\\% cap",
-    "cap_50pct": "50\\% cap", "neff_kappa_30": "$\\kappa = 30$",
-    "neff_kappa_120": "$\\kappa = 120$", "core_universe": "Core universe",
-    "alt_seeds_100": "Alternative seeds",
-    "a2_accept_as_estimated": "Accept degenerate fits",
-    "a3_total_covariance": "Total covariance mixture",
-}
 CAPTIONS = {
     "table1_performance": "Realized performance, 2010--2026, net of 10 basis "
         "points. Annualized figures; maximum drawdown from the net wealth path.",
@@ -107,11 +71,13 @@ CAPTIONS = {
 
 
 def humanize(value: str) -> str:
-    """Map a machine identifier to a LaTeX-safe display label."""
-    for mapping in (STRATEGY_LABELS, METRIC_LABELS, SPEC_LABELS):
-        if value in mapping:
-            return mapping[value]
-    return value.replace("_", " ")
+    """Display label via the central registry.
+
+    Raises on an unregistered identifier rather than falling back
+    to the raw string, which is how an unescaped underscore
+    previously reached the compiler.
+    """
+    return tex_util.label_for(value)
 
 
 def main() -> None:
@@ -224,6 +190,10 @@ def main() -> None:
                 label=f"tab:{name}",
                 column_format="l" + "r" * len(tex.columns),
                 position="htbp",
+            ).replace(
+                # \small keeps the wide performance table inside the text
+                # block; without it Table 1 overfulls by 24pt.
+                r"\begin{tabular}", "\\small\n" + r"\begin{tabular}"
             ),
             encoding="utf-8",
         )

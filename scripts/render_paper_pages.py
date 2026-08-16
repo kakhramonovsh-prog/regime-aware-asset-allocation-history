@@ -41,10 +41,11 @@ def main() -> None:
         stale.unlink()
 
     document = fitz.open(PDF)
+    page_total = document.page_count
     zoom = args.dpi / 72
     matrix = fitz.Matrix(zoom, zoom)
 
-    print(f"Rendering {document.page_count} pages at {args.dpi} dpi\n")
+    print(f"Rendering {page_total} pages at {args.dpi} dpi\n")
     print(f"{'page':>5}  {'ink %':>7}  {'chars':>7}  note")
 
     problems: list[str] = []
@@ -67,13 +68,13 @@ def main() -> None:
         if not text and coverage < 1:
             note = "BLANK PAGE"
             problems.append(f"page {number} is blank")
-        elif coverage < 8 and number < document.page_count:
+        elif coverage < 2.0 and number < page_total:
             note = "sparse - check float placement"
             problems.append(f"page {number} is sparse ({coverage:.1f}% ink)")
         print(f"{number:>5}  {coverage:>6.1f}%  {len(text):>7}  {note}")
 
     document.close()
-    print(f"\nWrote {document.page_count} images to "
+    print(f"\nWrote {page_total} images to "
           f"{OUT.relative_to(PROJECT_ROOT)}")
 
     if problems:
