@@ -477,7 +477,8 @@ with the degeneracy policy the plan applies to low occupancy. Four of
 **State of knowledge when adopted:** the four affected dates, their
 flags, and their probabilities were known. **No covariance estimate,
 portfolio weight, return, or performance statistic had been computed or
-examined**, so the rule could not be performance-motivated.
+examined**, so no performance information was available to motivate the
+rule.
 
 Explicitly excluded (none of these is done): replacing the probability,
 interpolating from neighboring months, deleting the affected rebalance,

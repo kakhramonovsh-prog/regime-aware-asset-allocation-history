@@ -180,7 +180,7 @@ changes how the regime signal is consumed at 4 of 200 rebalances (2%),
 including the first. That is a specification decision, and it is being
 raised **before** any covariance or portfolio result exists — no
 performance information of any kind has been computed, so the choice
-cannot be performance-motivated. What is known: the four dates, their
+carries no performance information to motivate it. What is known: the four dates, their
 flags, and P(high) = 1.0 at each.
 
 ### Resolution: Amendment A2 (adopted 2026-08-15, before any covariance or portfolio result)

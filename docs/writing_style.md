@@ -225,6 +225,26 @@ Rules for this specific paper:
 - Report the volatility reduction as suggestive and unadjusted, never as
   established.
 
+**Claims about research integrity — use this wording, not stronger.**
+The safeguards constrained discretion; they did not eliminate it.
+Implementation decisions were made throughout (zero-mean GARCH, ×100
+scaling, HAC lag 3, `covariance_type`, `n_iter`, the selection
+tolerance), and four amendments changed the frozen plan after it was
+tagged. Claiming the pipeline "could not be steered" overstates what
+preregistration achieves and invites a reviewer to find the one
+counterexample.
+
+The sanctioned sentence:
+
+> Preregistration, frozen data, causal tests, automated validation, and
+> dated amendments substantially constrained ex-post researcher
+> discretion. All amendments were documented before viewing the results
+> they could influence.
+
+Banned formulations: "could not have been steered," "impossible to
+influence," "the result was inevitable," "guarantees objectivity," any
+phrasing implying zero remaining discretion.
+
 **Framing the null (the DeMiguel model).** Their abstract states the
 scope tested, then the plain negative finding, then the mechanism:
 estimation error more than offsets the theoretical gain. The mechanism
@@ -260,7 +280,56 @@ Cochrane, applied to material this project has in abundance:
 Target length: 25–35 pages including tables. Cochrane caps final papers
 at 40 and says shorter is better.
 
-## 10. Sources and verification status
+## 10. Paper structure
+
+**Working title:** *Do Latent Volatility Regimes Improve Risk-Based
+Asset Allocation? Evidence from a Preregistered Walk-Forward ETF Study*
+
+Main text, ten sections:
+
+1. Introduction and research question
+2. Literature review
+3. Data and information-availability policy
+4. Preregistered empirical design
+5. Volatility and regime estimation
+6. Covariance and portfolio construction
+7. Primary performance and inference
+8. Robustness
+9. Limitations
+10. Conclusion
+
+**Core results, kept compact.** These seven belong in the paper's spine;
+everything else is appendix:
+
+- Primary ΔSharpe = +0.021
+- 95% CI [−0.075, +0.115]
+- One-sided p = 0.327
+- Suggestive −0.175 percentage-point volatility difference
+- Sign reversals under three states and dropping realized volatility
+- No robustness comparison surviving Holm
+- Strong sensitivity to weight constraints and realized exposures
+
+**The 30% cap stays out of the abstract**, with at most one sentence
+noting that portfolio constraints materially affected apparent
+performance. It is a robustness specification that fails multiplicity
+adjustment; giving it abstract space would misrepresent its standing.
+
+**Closing sentence, fixed:**
+
+> Regime conditioning modestly reduced realized volatility in the
+> primary specification but did not produce statistically credible
+> improvement in net risk-adjusted performance. Results were sensitive
+> to state specification, feature selection, sample period, and
+> portfolio constraints.
+
+**Unit discipline.** Every number in every table passes through
+`src/units.py`, which stores `raw_value`, `display_value` and
+`display_unit` together and re-derives the conversion before writing.
+No manual conversion enters the LaTeX. Two order-of-magnitude errors
+reached draft reports before this existed; both now have regression
+tests.
+
+## 11. Sources and verification status
 
 Full bibliographic details go into `references.bib` only after each is
 checked against the publisher record, per the project's standing rule.
@@ -272,7 +341,7 @@ checked against the publisher record, per the project's standing rule.
 | Harvey, C. R., Liu, Y. Backtesting. SSRN 2345489; Harvey, Liu, Zhu, "…and the Cross-Section of Expected Returns," NBER w20592. | Findings confirmed from NBER and SSRN listings; **full citation to verify** |
 | Hamilton (1989), Ledoit-Wolf (2004), Patton (2011), Diebold-Mariano (1995), Politis-Romano (1994), Hansen (2005) | Verified with DOIs in `docs/research_design.md` §13 |
 
-## 11. Pre-submission checklist
+## 12. Pre-submission checklist
 
 1. Can a reader state the contribution after the abstract alone?
 2. Does the first sentence contain a result rather than a motivation?
