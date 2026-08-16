@@ -65,10 +65,21 @@ paper applies, and with it the discipline that states are latent and
 inferred rather than observed. That distinction governs the empirical
 design here: the trading signal is the filtered probability at the
 decision date, never a smoothed path that conditions on data the
-investor did not have. The volatility-clustering literature that
-motivates two-state models is long established; the contribution of this
-paper is not to document clustering but to ask whether acting on it
-survives out-of-sample testing net of costs.
+investor did not have. The volatility clustering the framework describes
+was documented by \citet{engle1982} and generalized by
+\citet{bollerslev1986}; this paper does not revisit it, asking instead
+whether acting on it survives out-of-sample testing net of costs.
+
+Applying regime switching to allocation has a substantial literature.
+\citet{ang2002} document regime shifts in international equity
+correlations and their allocation consequences, \citet{guidolin2007}
+solve multivariate regime-switching allocation problems, and
+\citet{ang2012} survey the field. Much of this work evaluates
+allocations in-sample or with regimes inferred from the full sample.
+This paper's contribution is narrower and more sceptical: it asks what
+regime conditioning is worth when states are inferred strictly in real
+time, the comparator differs by that ingredient alone, and trading costs
+are charged.
 
 \citet{demiguel2009} provide the closest methodological precedent. They
 evaluate fourteen portfolio models across seven datasets and find that
@@ -91,12 +102,30 @@ across an explicitly bounded robustness family is a direct response to
 that critique: the number of trials is fixed and published in advance
 rather than reconstructed afterward.
 
+The portfolio problem is \citet{markowitz1952} with the mean removed.
+\citet{michaud1989} sets out why sample mean-variance optimization
+performs poorly out of sample, which is the reason no strategy here uses
+expected-return forecasts, and \citet{clarke2011} characterize what
+minimum-variance portfolios actually hold. \citet{jagannathan2003} show
+that imposing constraints which are wrong as beliefs can nonetheless
+reduce estimation error and improve realized risk --- a result that
+bears directly on the constraint interaction reported in
+Section~\ref{sec:robustness}.
+
 On methods, the covariance estimator follows \citet{ledoit2004}, whose
 shrinkage approach is designed for exactly the near-collinear setting
 observed here, where the equity block carries pairwise correlations
-between 0.82 and 0.92. Volatility forecast evaluation uses QLIKE
-following \citet{patton2011}, who shows that rankings can be distorted
-when noisy volatility proxies are evaluated under inappropriate loss
-functions. Inference uses the stationary bootstrap of
+between 0.82 and 0.92. The hidden Markov model is estimated by the EM
+algorithm of \citet{dempster1977}. Volatility forecast evaluation uses
+QLIKE following \citet{patton2011}, who shows that rankings can be
+distorted when noisy volatility proxies are evaluated under
+inappropriate loss functions, with pairwise comparisons following
+\citet{diebold1995}. Inference uses the stationary bootstrap of
 \citet{politis1994}, chosen because portfolio returns are serially
-dependent and independent resampling would understate uncertainty.
+dependent and independent resampling would understate uncertainty;
+\citet{ledoit2008} develop the robust Sharpe-ratio test that motivates
+bootstrapping the difference rather than comparing ratios directly.
+Standard errors on mean differences use \citet{newey1987}, and
+multiplicity is handled by \citet{holm1979}. \citet{bailey2014} give
+the sharpest statement of why backtested performance requires this kind
+of discipline.

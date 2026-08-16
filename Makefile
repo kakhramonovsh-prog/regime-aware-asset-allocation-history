@@ -19,8 +19,18 @@ analysis:
 backtest:
 	$(PYTHON) scripts/run_backtest.py
 
-paper:
-	$(PYTHON) scripts/generate_paper_outputs.py
-
 test:
 	$(PYTHON) -m pytest tests/
+
+# Paper build gate: regenerate every number from stored results, compile
+# under halt-on-error, fail on undefined citations/references/commands or
+# significant overfull boxes, save the log, produce the PDF.
+.PHONY: paper-build paper-pages
+paper-build:
+	$(PYTHON) scripts/build_paper.py
+
+paper-pages: paper-build
+	$(PYTHON) scripts/render_paper_pages.py
+
+# `make paper` builds and renders for inspection.
+paper: paper-pages

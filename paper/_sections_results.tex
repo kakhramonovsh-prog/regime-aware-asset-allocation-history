@@ -10,7 +10,8 @@ Sharpe ratio of \regimeSharpe{} against the comparator's
 gain over the naive benchmarks comes from optimization itself rather
 than from anything dynamic: equal weight earns 0.857 and static minimum
 variance 0.910, after which dynamic covariance adds nothing measurable
-(0.908) and the two responsive rungs add modest further amounts.
+(\comparatorSharpe{}) and the two responsive rungs add modest further
+amounts.
 
 The highest realized Sharpe in the ladder belongs to the
 volatility-scaled strategy (0.945), not to the regime-aware strategy.
@@ -128,8 +129,10 @@ accounting for the remainder.
 total-covariance mixture reproduces the primary estimate to four
 decimals, confirming the measured negligibility of the omitted
 between-state term. Shrinkage thresholds of 30 and 120 move the estimate
-by at most 0.002. An alternative seed block gives $+0.021$. Accepting
-the degenerate fits rather than falling back gives $+0.018$.
+by at most 0.002. An alternative seed block gives $+0.0205$ against the
+primary \primarySharpeDiff{}, despite the selected seed changing at 152
+of 199 consecutive refits. Accepting the degenerate fits rather than
+falling back gives $+0.018$.
 
 \paragraph{Subperiods.} Sliced descriptively from the primary paths, the
 pre-2020 estimate is $+0.105$ and the post-2020 estimate is $-0.076$.

@@ -1,0 +1,82 @@
+name: paper
+
+# Builds the manuscript from a clean checkout using a pinned TeX
+# environment. This is the real reproducibility test: a local build can
+# succeed because of packages already present on the author's machine.
+# CI starts from nothing every time.
+
+on:
+  push:
+    paths:
+      - 'paper/**'
+      - 'scripts/build_paper.py'
+      - 'scripts/check_paper.py'
+      - 'scripts/generate_paper_outputs.py'
+      - '.github/workflows/paper.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Pinned TeX Live image: the same package set every run, so a build
+    # that passes today passes next year.
+    container:
+      image: texlive/texlive:TL2024-historic
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Record the TeX environment
+        run: |
+          echo "TeX Live version:"
+          tex --version | head -1
+          latexmk --version | head -1
+          echo "Packages available:"
+          kpsewhich natbib.sty booktabs.sty geometry.sty caption.sty setspace.sty
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: python -m pip install --quiet pandas numpy pyarrow
+
+      # The repository ships generated tables and macros, so the paper
+      # builds without vendor data. --skip-regen avoids requiring the
+      # frozen snapshot, which cannot be published.
+      - name: Build the paper (acceptance gate)
+        run: python scripts/build_paper.py --skip-regen
+
+      - name: Render every page for visual inspection
+        if: always()
+        run: |
+          python -m pip install --quiet pymupdf
+          python scripts/render_paper_pages.py
+
+      - name: Upload PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manuscript-pdf
+          path: paper/main.pdf
+          if-no-files-found: warn
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: |
+            outputs/paper_build/main.log
+            outputs/paper_build/latexmk_stdout.txt
+          if-no-files-found: warn
+
+      - name: Upload rendered pages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-pages
+          path: outputs/paper_build/pages/
+          if-no-files-found: warn
