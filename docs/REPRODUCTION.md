@@ -217,3 +217,46 @@ Regenerates every table and figure the paper references, writes them to
 writes `outputs/results_manifest.json` recording the git commit, config
 hash, data hash, and a SHA-256 for each artifact. The LaTeX pulls
 numbers only through generated macros, so no result is typed by hand.
+
+---
+
+## Verified clean-clone reproduction (2026-08-16)
+
+Performed on a fresh `git clone` into a new directory, with a new
+virtual environment built from `requirements.txt`. No `.venv`, no
+`outputs/`, and no cached models were copied from the working
+directory. The frozen snapshot was restored by the documented method
+and verified before any analysis ran.
+
+| Criterion | Paper | Clean clone | Verdict |
+|---|---|---|---|
+| Test suite on bare clone (no market data) | 214 pass | 214 pass | PASS |
+| Smoke test (synthetic, no network) | 32/32 | 32/32 | PASS |
+| Snapshot hashes | 13 match | 13 match | PASS |
+| Regime origins | 200 | 200 | PASS |
+| A2 fallbacks | 4 | 4 | PASS |
+| Regime classifications | — | identical | PASS |
+| Selected HMM seeds | — | identical | PASS |
+| Primary ΔSharpe | +0.0210 | +0.0210 | PASS |
+| 95% CI | [−0.0748, +0.1147] | [−0.0748, +0.1147] | PASS |
+| One-sided p | 0.3273 | 0.3273 | PASS |
+| Volatility difference | −0.1754 pp | −0.1754 pp | PASS |
+| Robustness specifications | 13 | 13 | PASS |
+| Holm-significant robustness results | 0 | 0 | PASS |
+| Max ΔSharpe deviation across 13 specs | — | 6.1e-09 | PASS |
+| Display-table unit verification | all pass | all pass | PASS |
+| LaTeX macros | 10 | 10, byte-identical | PASS |
+
+**Floating-point behaviour.** The HMM did not return bit-identical
+log-likelihoods: the largest filtered-probability deviation between the
+two runs was **1.45e-11**. Every one of the 200 regime classifications
+and all 200 selected seeds nonetheless matched exactly, because fit
+selection uses a relative tolerance band with a lowest-seed tie-break
+rather than `argmax`, and the nearest probability sits 0.164 from the
+0.5 decision boundary. Numerical reproduction and hash-identical
+artifacts are different standards; this project meets the former by
+design and does not claim the latter.
+
+**Not yet verified:** the LaTeX build. No `.tex` source exists beyond
+the generated macros and tables, so the PDF build will be checked when
+the paper is written.
