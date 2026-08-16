@@ -100,46 +100,72 @@ were compared:
 | Mean IEF weight | 0.299 | 0.399 | 0.499 |
 | Effective N assets (regime) | 3.70 | 2.92 | 2.61 |
 
-**The cap-30 advantage is a turnover and cost effect, not better regime
-identification.** Three facts establish this:
+### Exact gross/net decomposition
+
+Rather than approximating the cost contribution as cost expenditure
+divided by volatility — which conflates the drag on the mean with its
+effect on the ratio — the cost effect is computed exactly as
+`ΔSharpe(0 bps) − ΔSharpe(10 bps)` from the stored return series
+(`cap_gross_net_decomposition.csv`):
+
+| Cap | Gross ΔSharpe | Net ΔSharpe | **Cost effect** | Excess-return difference (ann.) | Volatility difference |
+|---|---|---|---|---|---|
+| **30%** | +0.0522 | +0.0504 | **0.0019** | **+0.489 pp** | **+0.0003** |
+| **40% (primary)** | +0.0306 | +0.0210 | **0.0097** | +0.003 pp | **−0.0018** |
+| 50% | +0.0263 | +0.0169 | 0.0094 | −0.006 pp | −0.0014 |
+
+Attribution of the +0.0294 change from the 40% to the 30% cap
+(`cap30_attribution.csv`):
+
+| Component | Value | Share |
+|---|---|---|
+| Total change in net ΔSharpe | +0.0294 | 100% |
+| Attributable to reduced cost drag | +0.0078 | **26.6%** |
+| Attributable to gross (pre-cost) differences | +0.0216 | **73.4%** |
+
+**Costs explain only about a quarter of the difference.** The dominant
+driver is the *gross* Sharpe difference, which itself rises from +0.0306
+to +0.0522 as the cap tightens. Consistently, the annualized excess-
+return difference goes from +0.003 pp at the 40% cap to **+0.489 pp** at
+30% — the regime strategy's constrained exposures realized materially
+higher returns, which is a gross-return realization effect rather than a
+saving on trading.
+
+Three observations therefore stand:
 
 1. **The volatility advantage disappears.** At a 30% cap the regime
    strategy is marginally *more* volatile than the comparator (+0.0003)
    where at 40% it was less volatile (−0.0018). The risk-reduction
-   channel — the one the model is designed to exploit — is absent
-   exactly where the Sharpe gain is largest.
-2. **Regime turnover halves, the comparator's does not.** Regime
-   half-turnover falls from 54.2% to 26.7% while the comparator moves
-   from 16.9% to 18.1%. A tighter cap constrains how far the regime
-   signal can move weights, so the strategy trades far less.
-3. **The cost penalty collapses.** The regime strategy's cost
-   disadvantage versus the comparator falls from **+7.45 bps to
-   +1.72 bps per year** — a 5.7 bps relative improvement. On a ~9%
-   volatility portfolio that is worth roughly 0.06 Sharpe, the right
-   order of magnitude for the observed +0.029 change.
+   channel the model is designed to exploit is absent exactly where the
+   Sharpe gain is largest.
+2. **The relative turnover penalty falls substantially.** Regime
+   half-turnover drops from 54.2% to 26.7% while the comparator moves
+   only from 16.9% to 18.1%, cutting the cost penalty from +7.45 to
+   +1.72 bps per year.
+3. **But that saving is not the main story.** It accounts for 26.6% of
+   the change; the remaining 73.4% comes from altered portfolio
+   exposures and their realized returns. With an interval that does not
+   survive multiplicity adjustment, that remainder is as consistent with
+   sampling variation as with any structural mechanism.
 
-Consistently, the CAGR difference rises from +0.0002 at the 40% cap to
-+0.0053 at 30%, while the drawdown difference stays negligible — the
-gain arrives through returns retained by trading less, not through risk
-reduction. The cap also forces diversification (effective assets 3.70
-vs 2.92) and mechanically lowers the IEF concentration that binds at
-every origin.
+The cap also forces diversification (effective assets 3.70 vs 2.92) and
+mechanically lowers the IEF concentration that binds at every origin,
+which is the channel through which exposures change.
 
 **Wording for the paper:**
 
-> Under the preregistered 30% weight-cap sensitivity, the regime-aware
-> strategy produced a larger positive Sharpe difference and an
-> unadjusted interval excluding zero. This result is secondary, belongs
-> to a multi-specification robustness family, and does not alter the
-> unsupported primary superiority hypothesis. It does not survive Holm
-> adjustment across that family (p = 0.133), and decomposition shows it
-> arises from constrained turnover and the resulting cost saving rather
-> than from improved regime identification: the volatility advantage
-> vanishes at the tighter cap.
+> Under the 30% cap, the volatility advantage disappears, while the
+> regime strategy's relative turnover penalty falls substantially.
+> However, the reduction in transaction costs explains only part of the
+> larger Sharpe difference (26.6% of it); altered portfolio exposures
+> and gross-return realizations account for the remainder. The
+> unadjusted result does not survive Holm correction (p = 0.133) and
+> does not alter the primary conclusion.
 
 The interesting economic content is therefore about **how portfolio
-constraints interact with the cost of acting on a regime signal**, not
-about the signal's quality.
+constraints reshape turnover, exposures and apparent performance** —
+not about the regime signal's quality, and not reducible to a cost
+saving alone.
 
 ## 4. Specifications that barely move the estimate
 
@@ -200,12 +226,35 @@ effective sample sizes with a non-degenerate middle state and verified
 canonical ordering; failure counts appear on every row; and subperiods
 carry a descriptive-only label.
 
-## 8. Artifacts
+## 8. Final empirical conclusion
+
+With Phases 4-12 complete, the defensible conclusion is:
+
+- **Primary net Sharpe difference: +0.021**, 95% CI **[−0.075, +0.115]**,
+  one-sided p = 0.327.
+- **No confirmatory evidence** that regime conditioning improves
+  risk-adjusted performance.
+- A **small suggestive volatility reduction** in the primary
+  specification (−0.175 pp annualized), unadjusted and secondary.
+- **Sign reversal** under a three-state model and when realized
+  volatility is removed.
+- **Pre/post-2020 sign reversal** (+0.105 vs −0.076), descriptive only.
+- **No robustness comparison survives Holm adjustment.**
+- **Portfolio constraints materially affect turnover, exposures and
+  apparent performance** — the clearest economic finding in the
+  robustness grid.
+- The negative result remains informative **because the design was
+  frozen before any result existed** (tag `v0.2.0-preregistered`, plus
+  four dated amendments each adopted before the results they could have
+  influenced).
+
+## 9. Artifacts
 
 `outputs/robustness/robustness_grid.csv` (13 specifications, full
 precision), `hmm_diagnostics_by_spec.csv`, `subperiod_descriptive.csv`,
-`closing_checks.csv`, `run_log.txt`, per-specification checkpoints in
-`partial/`; `outputs/figures/robustness_forest.png`;
+`closing_checks.csv`, `cap_gross_net_decomposition.csv`,
+`cap30_attribution.csv`, `run_log.txt`, per-specification checkpoints
+in `partial/`; `outputs/figures/robustness_forest.png`;
 [phase12_manifest.json](phase12_manifest.json).
 
 Reproduce with `python scripts/run_robustness.py` (resumes from
