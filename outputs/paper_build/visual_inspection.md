@@ -172,3 +172,45 @@ Five of the seven (D9, D10, D11, D12 and part of D8) were introduced by
 this round's own change: moving hand-typed results into macros. That is
 the expected cost of the change and the reason the pass repeats rather
 than being assumed.
+
+---
+
+## Round 3 — PASSED (one wording residual corrected)
+
+| Field | Value |
+|---|---|
+| PDF SHA-256 | `5c7795e458c578ecd993a4507f56421b97ac6d2e4814f8e6cbb086e744853156` |
+| Commit | `b102c43634394a3cd90acf5579cee4175751d7ff` |
+| CI run | 31979149256 |
+| Page count | 15 |
+| Inspection date | 2026-08-16 |
+| Automated gate | PASSED |
+| Number census | PASSED |
+| Visual result | **All 6 Round 2 defects fixed; 1 wording residual** |
+
+### Verification of every Round 2 defect
+
+| Defect | Page | Round 3 state |
+|---|---|---|
+| D8 stray space in "volatility- scaled" | 6 | **FIXED** — renders "volatility-scaled minimum variance" |
+| D9 mixed word/digit counts | 6, 9 | **FIXED** — "only 1 of the fifteen pairwise comparisons survives"; "Point estimates are positive in 11 of the thirteen specifications, and 12 of the thirteen intervals contain zero" |
+| D10 thin space before percent | 6, 7, 9, 11, 13 | **FIXED** — "54.19%", "16.94%", "0.16%", "45.4%", "26.6%", "73.4%"; page 13 now reads "40% to 30% ... 73.4% of that change" consistently |
+| D11 magnitude and signed value consecutive | 9 | **FIXED** — "lower by 0.175 pp, with a 95% interval on that difference running from −0.327 pp to −0.033 pp" |
+| D12 sentence opening with a digit | 11 | **FIXED** — "The estimate reverses sign in 2 of the preregistered variations" |
+| D13 BibTeX case-folding | 14, 15 | **FIXED** — "1/N portfolio strategy", "the EM algorithm", "United Kingdom inflation", "with the Sharpe ratio", "The Markowitz optimization enigma" |
+
+### Pages re-verified as unchanged
+
+Pages 1–5, 8, 10 and 12 were re-read and remain as dispositioned in
+Round 2. Page count is unchanged at 15, so no float moved and nothing
+repaginated. Table 3 still shows drop-realized-vol at −0.023 and the
+scientific-notation macro still typesets.
+
+### Residual corrected after this inspection
+
+**D14 (page 9)** — "Only one of the 5 secondary metric intervals
+excludes zero" places a spelled-out number beside a digit in the same
+clause, the last instance of D9's pattern. Reworded to "Among the 5
+secondary metric intervals, only annualized volatility excludes zero."
+This is a source change, so it invalidates the Round 3 artifact and
+requires one confirming pass on the next build.
