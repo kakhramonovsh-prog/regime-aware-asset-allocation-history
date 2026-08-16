@@ -582,7 +582,15 @@ def main() -> None:
         # '%' is a LaTeX comment character: an unescaped one silently
         # swallows the rest of the line, including the closing brace.
         unit_tex = unit.replace("%", r"\%")
-        suffix = f"\\,{unit_tex}" if unit_tex else ""
+        # A thin space belongs before a unit ("10.838 bps") but not
+        # before a percent sign: "54.19 %" sits next to hard-coded "30%"
+        # in the same sentence and reads as a mistake.
+        if not unit_tex:
+            suffix = ""
+        elif unit_tex == r"\%":
+            suffix = unit_tex
+        else:
+            suffix = f"\\,{unit_tex}"
         lines.append(f"\\newcommand{{\\{macro_name(key)}}}{{{formatted}{suffix}}}")
         inventory.append({
             "result_id": key,

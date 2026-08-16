@@ -58,11 +58,10 @@ estimate sits \hacSdsFromZero{} standard errors from zero
 ($p = \hacPValue{}$, HAC lag 21; lags of 5 and 42 give the same
 conclusion).
 
-Of the \nSecondaryMetrics{} secondary metric intervals, the only one
-excluding zero is
-annualized volatility: the regime-aware strategy's is lower by
-\volDifferenceMagnitude{}, a difference of \volDifference{} with a 95\%
-interval running from \volCiLower{} to \volCiUpper{}. This is a secondary, unadjusted interval among several examined
+Only one of the \nSecondaryMetrics{} secondary metric intervals excludes
+zero, and it is annualized volatility: the regime-aware strategy's is
+lower by \volDifferenceMagnitude{}, with a 95\% interval on that
+difference running from \volCiLower{} to \volCiUpper{}. This is a secondary, unadjusted interval among several examined
 metrics and is not confirmatory evidence. What raises it above an
 incidental finding is that it is the outcome the mechanism predicts: a
 variance minimizer given additional information about variance should
@@ -101,14 +100,14 @@ adjustment.}
 \label{fig:forest}
 \end{figure}
 
-\nSpecsPositive{} of thirteen point estimates are positive and
-\nSpecsContainingZero{} of thirteen intervals contain zero. \textbf{After
-Holm adjustment across the twelve-specification robustness family,
-nothing survives.}
+Point estimates are positive in \nSpecsPositive{} of the thirteen
+specifications, and \nSpecsContainingZero{} of the thirteen intervals
+contain zero. \textbf{After Holm adjustment across the
+twelve-specification robustness family, nothing survives.}
 
-\paragraph{Sign instability.} \nSignReversals{} preregistered variations
-reverse the
-sign: the three-state HMM (\threeStateDiff{}) and dropping realized
+\paragraph{Sign instability.} The estimate reverses sign in
+\nSignReversals{} of the preregistered variations: the three-state HMM
+(\threeStateDiff{}) and dropping realized
 volatility from the feature set (\dropRvDiff{}). Neither reversal is
 significant, but a result that changes direction when the state count
 changes is fragile. The three-state model is not itself defective --- its

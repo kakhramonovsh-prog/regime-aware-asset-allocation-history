@@ -95,6 +95,33 @@ def main() -> None:
             problems.append(f"{row['citation_key']}: marked verified but the "
                             "claim check is still outstanding")
 
+    # BibTeX's plainnat style lowercases every title word that is not
+    # brace-protected, so acronyms and proper nouns are silently
+    # downcased in the rendered bibliography: "the em algorithm",
+    # "united kingdom inflation", "the sharpe ratio". BibTeX succeeds, so
+    # no build gate sees it; it was found by reading page 14 of the PDF.
+    print("\nTitle case protection:")
+    protect = {"EM", "GARCH", "ARCH", "VIX", "ETF", "US", "UK", "CAPM", "QLIKE",
+               "OLS", "GMM", "HMM", "DCC", "VAR", "CRSP", "SP", "N", "I", "II",
+               "Sharpe", "Markowitz", "Ledoit", "Wolf", "Gaussian", "Bayesian",
+               "Monte", "Carlo", "United", "Kingdom", "States", "American",
+               "European", "Treasury", "Holm", "Newey", "West", "Hamilton",
+               "Diebold", "Mariano", "Politis", "Romano", "Engle", "Bollerslev"}
+    unprotected: list[str] = []
+    for key, title in re.findall(r"@\w+\{([^,]+),.*?title\s*=\s*\{(.*?)\}\s*,\s*\n",
+                                 bib_text, re.DOTALL):
+        # Strip already-protected spans, then look at what is left.
+        exposed = re.sub(r"\{[^{}]*\}", " ", title)
+        for word in re.findall(r"[A-Za-z][\w'-]*", exposed):
+            if word in protect or (len(word) > 1 and word.isupper()):
+                unprotected.append(f"{key}: '{word}' is not brace-protected")
+    if unprotected:
+        for item in unprotected:
+            print(f"  [UNPROTECTED] {item}")
+        problems.extend(unprotected)
+    else:
+        print("  every acronym and proper noun in a title is brace-protected")
+
     # The .bib itself must not advertise pending work at release time.
     pending_markers = bib_text.count("PENDING VERIFICATION")
     print(f"\n'PENDING VERIFICATION' markers in references.bib: {pending_markers}")

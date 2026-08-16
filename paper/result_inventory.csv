@@ -22,8 +22,8 @@ regime_sharpe,\regimeSharpe,0.9292400829835668,0.9292400829835668,sharpe,0.929,o
 comparator_sharpe,\comparatorSharpe,0.9082745644417248,0.9082745644417248,sharpe,0.908,outputs/performance/performance_summary.csv
 diff_at_zero_bps,\diffAtZeroBps,0.030629487827657398,0.030629487827657398,sharpe_difference,0.031,outputs/performance/performance_summary.csv
 diff_at_twenty_bps,\diffAtTwentyBps,0.011246551124485804,0.011246551124485804,sharpe_difference,0.011,outputs/performance/performance_summary.csv
-regime_half_turnover,\regimeHalfTurnover,0.541885535043826,54.1885535043826,%,"54.19\,\%",outputs/backtests/turnover.parquet
-comparator_half_turnover,\comparatorHalfTurnover,0.1693822270101275,16.93822270101275,%,"16.94\,\%",outputs/backtests/turnover.parquet
+regime_half_turnover,\regimeHalfTurnover,0.541885535043826,54.1885535043826,%,54.19\%,outputs/backtests/turnover.parquet
+comparator_half_turnover,\comparatorHalfTurnover,0.1693822270101275,16.93822270101275,%,16.94\%,outputs/backtests/turnover.parquet
 regime_cost,\regimeCost,0.0010837710700876521,10.83771070087652,bps,"10.838\,bps",outputs/backtests/turnover.parquet
 comparator_cost,\comparatorCost,0.000338764454020255,3.38764454020255,bps,"3.388\,bps",outputs/backtests/turnover.parquet
 turnover_ratio,\turnoverRatio,3.199187686978671,3.199187686978671,factor,3.2,outputs/backtests/turnover.parquet
@@ -39,8 +39,8 @@ kappa_max_move,\kappaMaxMove,0.0018828484859316,0.0018828484859316,sharpe_differ
 cap30_total_change,\capThirtyTotalChange,0.0293950169122246,0.0293950169122246,sharpe_difference,0.029,outputs/robustness/cap30_attribution.csv
 cap30_cost_component,\capThirtyCostComponent,0.0078130261416835,0.0078130261416835,sharpe_difference,0.008,outputs/robustness/cap30_attribution.csv
 cap30_gross_component,\capThirtyGrossComponent,0.0215819907705411,0.0215819907705411,sharpe_difference,0.022,outputs/robustness/cap30_attribution.csv
-cap30_cost_share,\capThirtyCostShare,0.2657942386974543,26.579423869745426,%,"26.6\,\%",outputs/robustness/cap30_attribution.csv
-cap30_gross_share,\capThirtyGrossShare,0.7342057613025457,73.42057613025457,%,"73.4\,\%",outputs/robustness/cap30_attribution.csv
+cap30_cost_share,\capThirtyCostShare,0.2657942386974543,26.579423869745426,%,26.6\%,outputs/robustness/cap30_attribution.csv
+cap30_gross_share,\capThirtyGrossShare,0.7342057613025457,73.42057613025457,%,73.4\%,outputs/robustness/cap30_attribution.csv
 n_specs_positive,\nSpecsPositive,11.0,11.0,count,11,outputs/robustness/robustness_grid.csv
 n_sign_reversals,\nSignReversals,2.0,2.0,count,2,outputs/robustness/robustness_grid.csv
 n_specs_containing_zero,\nSpecsContainingZero,12.0,12.0,count,12,outputs/robustness/robustness_grid.csv
@@ -56,8 +56,8 @@ ewma_mean_condition,\ewmaMeanCondition,116.26211,116.26211,count,116,outputs/cov
 ewma_max_condition,\ewmaMaxCondition,504.86844,504.86844,count,505,outputs/covariance/conditioning_summary.csv
 state1_condition,\stateOneCondition,61.425561,61.425561,condition_number,61.4,outputs/covariance/conditioning_summary.csv
 state0_condition,\stateZeroCondition,36.846361,36.846361,condition_number,36.8,outputs/covariance/conditioning_summary.csv
-between_state_max,\betweenStateMax,0.0015857198,0.15857198,%,"0.16\,\%",outputs/covariance/covariance_audit.csv
-three_state_mid_occupancy,\threeStateMidOccupancy,0.4537585619286169,45.37585619286169,%,"45.4\,\%",outputs/robustness/hmm_diagnostics_by_spec.csv
+between_state_max,\betweenStateMax,0.0015857198,0.15857198,%,0.16\%,outputs/covariance/covariance_audit.csv
+three_state_mid_occupancy,\threeStateMidOccupancy,0.4537585619286169,45.37585619286169,%,45.4\%,outputs/robustness/hmm_diagnostics_by_spec.csv
 three_state_min_neff,\threeStateMinNeff,486.5138614395545,486.5138614395545,count,487,outputs/robustness/hmm_diagnostics_by_spec.csv
 equity_corr_min,\equityCorrMin,0.820724,0.820724,correlation,0.82,outputs/tables/correlation_matrix.csv
 equity_corr_max,\equityCorrMax,0.919023,0.919023,correlation,0.92,outputs/tables/correlation_matrix.csv

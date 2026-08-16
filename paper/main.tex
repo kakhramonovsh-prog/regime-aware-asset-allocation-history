@@ -158,9 +158,9 @@ accounting layer.
 \paragraph{Strategy ladder.} Six strategies form an ablation ladder in
 which each rung adds exactly one ingredient:
 equal weight; 60/40 SPY/IEF; static minimum variance estimated once on
-the training window; rolling Ledoit--Wolf minimum variance; volatility-
-scaled minimum variance using EWMA variance forecasts with Ledoit--Wolf
-correlations; and regime-aware minimum variance. Reading performance
+the training window; rolling Ledoit--Wolf minimum variance;
+volatility-scaled minimum variance using EWMA variance forecasts with
+Ledoit--Wolf correlations; and regime-aware minimum variance. Reading performance
 down the ladder attributes any improvement to dynamic covariance,
 volatility forecasting or regime conditioning specifically.
 
@@ -193,8 +193,8 @@ cost on a traded notional of one.
 GARCH(1,1) with normal innovations refit at every rebalance date. The
 forecast target is the integrated variance over the next holding period,
 evaluated by QLIKE as the primary loss. GARCH attains the lowest QLIKE
-for all five assets, but after Holm adjustment across the fifteen
-pairwise comparisons \nForecastPairsSurvivingHolm{} survives at the 5\%
+for all five assets, but only \nForecastPairsSurvivingHolm{} of the
+fifteen pairwise comparisons survives Holm adjustment at the 5\%
 level. EWMA was fixed
 \emph{ex ante} as the model feeding the portfolio, so this comparison
 does not and cannot promote GARCH into the main specification; a
