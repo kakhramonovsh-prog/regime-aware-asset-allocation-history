@@ -8,13 +8,13 @@ Table~\ref{tab:table1_performance} reports the six strategies over
 Sharpe ratio of \regimeSharpe{} against the comparator's
 \comparatorSharpe{}. Reading down the ladder, most of the risk-adjusted
 gain over the naive benchmarks comes from optimization itself rather
-than from anything dynamic: equal weight earns 0.857 and static minimum
-variance 0.910, after which dynamic covariance adds nothing measurable
-(\comparatorSharpe{}) and the two responsive rungs add modest further
-amounts.
+than from anything dynamic: equal weight earns \equalWeightSharpe{} and
+static minimum variance \staticMinvarSharpe{}, after which dynamic
+covariance adds nothing measurable (\comparatorSharpe{}) and the two
+responsive rungs add modest further amounts.
 
 The highest realized Sharpe in the ladder belongs to the
-volatility-scaled strategy (0.945), not to the regime-aware strategy.
+volatility-scaled strategy (\ewmaScaledSharpe{}), not to the regime-aware strategy.
 That was not predicted by the design and is reported as found; it does
 not alter the preregistered hypothesis, which concerns the regime rung.
 
@@ -30,9 +30,10 @@ regime-aware strategy and rolling Ledoit--Wolf minimum variance is
 p = \primaryPValue .
 \end{equation}
 
-The interval is roughly nine times as wide as the point estimate and
-contains zero comfortably; the estimate sits 0.44 bootstrap standard
-deviations from zero. $H_0$ is not rejected.
+The interval is roughly \ciWidthMultiple{} times as wide as the point
+estimate and contains zero comfortably; the estimate sits
+\primarySdsFromZero{} bootstrap standard deviations from zero. $H_0$ is
+not rejected.
 
 Inference uses a stationary bootstrap with 10{,}000 replications, mean
 block length 21 trading days and seed 12345, applied to \emph{paired
@@ -45,18 +46,20 @@ centered null $\Delta SR_b - \widehat{\Delta SR}$, not from the fraction
 of ordinary draws below zero, which is a different quantity.
 
 The conclusion is insensitive to block length: mean blocks of 10, 42 and
-63 days all produce intervals within 0.005 of the primary bounds, and
-every one contains zero.
+63 days all produce interval bounds within \blockMaxDeviation{} of the
+primary bounds, and every one contains zero.
 
 \subsection{Returns and volatility separately}
 
 Mean returns are indistinguishable. Paired daily net return differences
 give an annualized arithmetic difference of \hacAnnualReturnDiff{}
-against a Newey--West standard error of 36.2 basis points, so the
-estimate sits 0.009 standard errors from zero ($p = 0.993$, HAC lag 21;
-lags of 5 and 42 give the same conclusion).
+against a Newey--West standard error of \hacStandardError{}, so the
+estimate sits \hacSdsFromZero{} standard errors from zero
+($p = \hacPValue{}$, HAC lag 21; lags of 5 and 42 give the same
+conclusion).
 
-Among six secondary metric intervals, the only one excluding zero is
+Of the \nSecondaryMetrics{} secondary metric intervals, the only one
+excluding zero is
 annualized volatility: the regime-aware strategy's is lower by
 \volDifferenceMagnitude{}, a difference of \volDifference{} with a 95\%
 interval running from \volCiLower{} to \volCiUpper{}. This is a secondary, unadjusted interval among several examined
@@ -69,12 +72,12 @@ reduce variance. It is not described as statistically established.
 
 The regime-aware strategy trades \regimeHalfTurnover{} annual
 half-turnover against the comparator's \comparatorHalfTurnover{}, a
-factor of 3.2. At the primary cost assumption it spends roughly 10.8
-basis points per year against the comparator's 3.4, a hurdle of about
-7.5 basis points that its risk reduction must clear. The estimated
-Sharpe advantage falls monotonically with costs, from $+0.031$ at zero
-to $+0.011$ at 20 basis points, and no cost level produces an interval
-excluding zero.
+factor of \turnoverRatio{}. At the primary cost assumption it spends
+\regimeCost{} per year against the comparator's \comparatorCost{}, a
+hurdle of \costHurdle{} that its risk reduction must clear. The estimated
+Sharpe advantage falls monotonically with costs, from \diffAtZeroBps{} at
+zero to \diffAtTwentyBps{} at 20 basis points, and no cost level produces
+an interval excluding zero.
 
 \input{tables/table2_primary_inference.tex}
 
@@ -98,28 +101,33 @@ adjustment.}
 \label{fig:forest}
 \end{figure}
 
-Eleven of thirteen point estimates are positive and twelve of thirteen
-intervals contain zero. \textbf{After Holm adjustment across the
-twelve-specification robustness family, nothing survives.}
+\nSpecsPositive{} of thirteen point estimates are positive and
+\nSpecsContainingZero{} of thirteen intervals contain zero. \textbf{After
+Holm adjustment across the twelve-specification robustness family,
+nothing survives.}
 
-\paragraph{Sign instability.} Two preregistered variations reverse the
-sign: the three-state HMM ($-0.028$) and dropping realized volatility
-from the feature set ($-0.024$). Neither reversal is significant, but a
-result that changes direction when the state count changes is fragile.
-The three-state model is not itself defective --- its middle state holds
-45.4\% occupancy with a minimum effective sample size of 487, canonical
+\paragraph{Sign instability.} \nSignReversals{} preregistered variations
+reverse the
+sign: the three-state HMM (\threeStateDiff{}) and dropping realized
+volatility from the feature set (\dropRvDiff{}). Neither reversal is
+significant, but a result that changes direction when the state count
+changes is fragile. The three-state model is not itself defective --- its
+middle state holds \threeStateMidOccupancy{} occupancy with a minimum
+effective sample size of \threeStateMinNeff{}, canonical
 low--medium--high ordering holds at every refit, and no initialization
 failed --- so the reversal reflects the estimate rather than a broken
 fit.
 
 \paragraph{The weight cap.} The 30\% cap is the only specification whose
-unadjusted interval excludes zero ($+0.050$, $p = 0.011$), and it does
-not survive Holm adjustment ($p = 0.133$). Decomposing it exactly, using
+unadjusted interval excludes zero (\capThirtyDiff{},
+$p = \capThirtyP{}$), and it does not survive Holm adjustment
+($p = \capThirtyPHolm{}$). Decomposing it exactly, using
 $\Delta SR(\text{0 bps}) - \Delta SR(\text{10 bps})$ rather than
 approximating cost expenditure divided by volatility: reduced cost drag
-accounts for $+0.008$ of the $+0.029$ change from the 40\% cap
-(26.6\%), while gross pre-cost differences account for $+0.022$
-(73.4\%). Under the 30\% cap the volatility advantage disappears while
+accounts for \capThirtyCostComponent{} of the \capThirtyTotalChange{}
+change from the 40\% cap (\capThirtyCostShare{}), while gross pre-cost
+differences account for \capThirtyGrossComponent{}
+(\capThirtyGrossShare{}). Under the 30\% cap the volatility advantage disappears while
 the relative turnover penalty falls substantially; however, reduced
 transaction costs explain only part of the larger Sharpe difference,
 with altered portfolio exposures and gross-return realizations
@@ -129,14 +137,16 @@ accounting for the remainder.
 total-covariance mixture reproduces the primary estimate to four
 decimals, confirming the measured negligibility of the omitted
 between-state term. Shrinkage thresholds of 30 and 120 move the estimate
-by at most 0.002. An alternative seed block gives $+0.0205$ against the
-primary \primarySharpeDiff{}, despite the selected seed changing at 152
-of 199 consecutive refits. Accepting the degenerate fits rather than
-falling back gives $+0.018$.
+by at most \kappaMaxMove{}. An alternative seed block gives
+\altSeedsDiff{} against the primary \primarySharpeDiff{}, despite the
+selected seed changing at \refitSeedChanges{} of 199 consecutive refits.
+Accepting the degenerate fits rather than falling back gives
+\aTwoAcceptDiff{}.
 
 \paragraph{Subperiods.} Sliced descriptively from the primary paths, the
-pre-2020 estimate is $+0.105$ and the post-2020 estimate is $-0.076$.
-With 232 days in the COVID slice and 460 in the 2022 tightening slice,
+pre-2020 estimate is \preTwentyTwentyDiff{} and the post-2020 estimate is
+\postTwentyTwentyDiff{}. With \covidDays{} days in the COVID slice and
+\tighteningDays{} in the 2022 tightening slice,
 these samples are far too small for inference, and the sign disagreement
 between halves of the sample is a further reason for caution about the
 full-sample point estimate. No subperiod is promoted.
@@ -146,7 +156,7 @@ full-sample point estimate. No subperiod is promoted.
 \section{Limitations}
 \label{sec:limitations}
 
-\paragraph{Precision.} Despite approximately 16.6 years of out-of-sample
+\paragraph{Precision.} Despite approximately \oosYears{} years of out-of-sample
 returns, the study had limited precision for detecting small differences
 in risk-adjusted performance. The estimated Sharpe difference was
 \primarySharpeDiff{}, while its 95\% bootstrap interval ranged from
@@ -182,10 +192,11 @@ specification family. Whether the finding extends to international
 assets, credit, or intraday-informed volatility estimates is untested.
 
 \paragraph{Numerical reproduction.} Two independent runs produced
-filtered probabilities differing by up to $1.45 \times 10^{-11}$, while
-all selected seeds, classifications and reported conclusions reproduced.
-Exact argmax selection and tolerance-based selection were each stable
-across the two runs, although they selected different seeds at 144 of
+filtered probabilities differing by up to \reproductionMaxDifference{},
+while all selected seeds, classifications and reported conclusions
+reproduced. Exact argmax selection and tolerance-based selection were
+each stable across the two runs, although they selected different seeds
+at \argmaxToleranceDisagreements{} of
 200 origins. The evidence therefore supports numerical stability of both
 rules but does not establish that the tolerance rule was necessary for
 reproduction.

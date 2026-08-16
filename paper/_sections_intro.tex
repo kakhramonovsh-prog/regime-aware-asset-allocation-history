@@ -7,9 +7,9 @@ real time earned an annualized Sharpe ratio \primarySharpeDiff{} higher
 than the same portfolio without regime conditioning over 2010--2026, net
 of 10 basis points in transaction costs. The 95\% confidence interval on
 that difference runs from \primaryCiLower{} to \primaryCiUpper{}. The
-strategy did what the theory predicts, realizing \volDifference{} lower
-annualized volatility, but it traded 3.2 times as much as its
-comparator, and the estimated advantage falls monotonically as costs
+strategy did what the theory predicts, realizing \volDifferenceMagnitude{}
+lower annualized volatility, but it traded \turnoverRatio{} times as much
+as its comparator, and the estimated advantage falls monotonically as costs
 rise. On this evidence, regime conditioning delivers a measurable risk
 reduction too small relative to sampling variation to establish a
 risk-adjusted improvement once trading costs are paid.
@@ -41,8 +41,8 @@ under a three-state specification and when realized volatility is
 dropped from the feature set. It reverses again between the pre- and
 post-2020 halves of the sample. And after Holm adjustment across the
 robustness family, no specification retains significance. Set against
-these, a positive point estimate with an interval nine times its width
-is best read as inconclusive about small effects rather than as evidence
+these, a positive point estimate with an interval \ciWidthMultiple{} times
+its width is best read as inconclusive about small effects rather than as evidence
 of either a benefit or its absence.
 
 This paper contributes in three ways. It tests a regime-conditioning
@@ -118,7 +118,7 @@ Section~\ref{sec:robustness}.
 On methods, the covariance estimator follows \citet{ledoit2004}, whose
 shrinkage approach is designed for exactly the near-collinear setting
 observed here, where the equity block carries pairwise correlations
-between 0.82 and 0.92. The hidden Markov model is estimated by the EM
+between \equityCorrMin{} and \equityCorrMax{}. The hidden Markov model is estimated by the EM
 algorithm of \citet{dempster1977}. Volatility forecast evaluation uses
 QLIKE following \citet{patton2011}, who shows that rankings can be
 distorted when noisy volatility proxies are evaluated under

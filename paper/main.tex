@@ -45,8 +45,9 @@ regime-aware strategy earned an annualized Sharpe ratio
 \primarySharpeDiff{} higher; the 95\% stationary-bootstrap interval runs
 from \primaryCiLower{} to \primaryCiUpper{}, and the annualized return
 difference is \hacAnnualReturnDiff{}. Regime conditioning lowered
-annualized volatility by \volDifference{}, but required 3.2 times the
-turnover, and the estimate falls from 0.031 to 0.011 as costs rise from
+annualized volatility by \volDifferenceMagnitude{}, but required
+\turnoverRatio{} times the turnover, and the estimate falls from
+\diffAtZeroBps{} to \diffAtTwentyBps{} as costs rise from
 zero to 20 basis points. Across thirteen preregistered robustness
 specifications the sign reverses twice and no comparison survives
 multiplicity adjustment; portfolio constraints affected apparent
@@ -193,7 +194,8 @@ GARCH(1,1) with normal innovations refit at every rebalance date. The
 forecast target is the integrated variance over the next holding period,
 evaluated by QLIKE as the primary loss. GARCH attains the lowest QLIKE
 for all five assets, but after Holm adjustment across the fifteen
-pairwise comparisons only one survives at the 5\% level. EWMA was fixed
+pairwise comparisons \nForecastPairsSurvivingHolm{} survives at the 5\%
+level. EWMA was fixed
 \emph{ex ante} as the model feeding the portfolio, so this comparison
 does not and cannot promote GARCH into the main specification; a
 GARCH-fed variant belongs to robustness.
@@ -246,16 +248,19 @@ common across states. That is a deliberate simplification consistent
 with the design's prohibition on expected-return forecasting, and it is
 documented as an assumption rather than presented as the complete law of
 total covariance. Its magnitude is measured at every rebalance: the
-omitted term reaches at most 0.16\% of the within-state mixture and
-never exceeds 1\%. The complete formula is carried as a robustness case.
+omitted term reaches at most \betweenStateMax{} of the within-state
+mixture and never exceeds 1\%. The complete formula is carried as a
+robustness case.
 
 Conditioning diagnostics motivate the shrinkage. Across 200 origins the
 raw EWMA covariance is the worst-conditioned estimator, averaging a
-condition number of 116 and peaking above 500, which is why the
+condition number of \ewmaMeanCondition{} and peaking at
+\ewmaMaxCondition{}, which is why the
 volatility-scaled strategy combines EWMA variances with Ledoit--Wolf
 correlations rather than using the EWMA covariance directly. The
 high-volatility state is materially worse conditioned than the
-low-volatility state (means of 61.4 versus 36.8), so the stressed-state
+low-volatility state (means of \stateOneCondition{} versus
+\stateZeroCondition{}), so the stressed-state
 matrix is nearest to singular exactly when a variance minimizer leans on
 it hardest. No matrix in the panel required a positive-semidefinite
 correction.
@@ -263,7 +268,8 @@ correction.
 \paragraph{Degeneracy policy.} A degenerate fit keeps its probability,
 which is reported unchanged, but does not supply a regime-conditioned
 covariance for that rebalance; the allocation uses the unconditional
-Ledoit--Wolf estimate instead, and the fallback is audit-logged. Four of
+Ledoit--Wolf estimate instead, and the fallback is audit-logged.
+\aTwoFallbackOrigins{} of
 200 origins invoked this rule, all for absorbing transition rows. The
 routing depends solely on the diagnostic flags; the affected dates are
 audit information and appear in no routing condition.
@@ -282,11 +288,12 @@ constraints.
 
 The mechanism is visible even though the effect is not. Conditioning a
 covariance forecast on an inferred volatility state does what theory
-suggests: the regime-aware portfolio realized \volDifference{} lower
-annualized volatility than an otherwise identical strategy. The
+suggests: the regime-aware portfolio realized \volDifferenceMagnitude{}
+lower annualized volatility than an otherwise identical strategy. The
 difficulty is that this reduction is small relative to sampling
-variation, and harvesting it required 3.2 times the turnover, which
-consumed roughly 7.5 basis points per year. What survives after costs is
+variation, and harvesting it required \turnoverRatio{} times the
+turnover, which consumed \costHurdle{} per year more than its comparator.
+What survives after costs is
 \primarySharpeDiff{} in Sharpe ratio, with an interval that runs from
 \primaryCiLower{} to \primaryCiUpper{}.
 
@@ -310,7 +317,7 @@ kind is fragile regardless of its interval.
 One observation the design did not set out to test deserves attention,
 and equally deserves careful labelling. Tightening the weight cap from
 40\% to 30\% changed the estimated difference by more than any modelling
-choice examined, and decomposition attributes roughly three quarters of
+choice examined, and decomposition attributes \capThirtyGrossShare{} of
 that change to altered exposures and realized returns rather than to the
 cost saving from reduced turnover. This is consistent with
 \citet{jagannathan2003}, who show that constraints wrong as statements
@@ -332,8 +339,8 @@ model did.
 Whether regime conditioning adds value in settings with more assets,
 higher-frequency rebalancing, or lower trading costs remains open. This
 study establishes only that in a five-asset ETF universe rebalanced
-monthly at realistic costs, over sixteen years, the improvement was too
-small to distinguish from zero.
+monthly at realistic costs, over \oosYears{} years, the improvement was
+too small to distinguish from zero.
 
 \bibliography{references}
 \end{document}

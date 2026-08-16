@@ -38,3 +38,4 @@ paper/*.fdb_latexmk
 Thumbs.db
 .vscode/
 .idea/
+paper/number_census_template.csv

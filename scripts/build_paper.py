@@ -82,6 +82,18 @@ def main() -> None:
         sys.exit("Source validation failed.")
 
     # ------------------------------------------------------------------
+    # 2b. Every number in the prose is classified, and no empirical
+    #     result is hand-typed. A number that reappears as a literal
+    #     after an edit must fail here, not at the next manual read.
+    # ------------------------------------------------------------------
+    print("\nAuditing numeric literals...")
+    result = run([sys.executable, "scripts/number_census.py"], PROJECT_ROOT)
+    print("  " + result.stdout.strip().splitlines()[-1])
+    if result.returncode != 0:
+        print(result.stdout)
+        sys.exit("Number census failed.")
+
+    # ------------------------------------------------------------------
     # 3. Compile
     # ------------------------------------------------------------------
     latexmk = shutil.which("latexmk")

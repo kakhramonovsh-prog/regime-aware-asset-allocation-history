@@ -81,6 +81,12 @@ def sharpe_impact_of_return_change(
 # Display registry
 # ---------------------------------------------------------------------------
 
+def _scientific(x: float, decimals: int = 2) -> str:
+    """LaTeX scientific notation: 1.4503e-11 -> ``1.45 \\times 10^{-11}``."""
+    mantissa, exponent = f"{x:.{decimals}e}".split("e")
+    return rf"${mantissa} \times 10^{{{int(exponent)}}}$"
+
+
 @dataclass(frozen=True)
 class Unit:
     """A display unit and the function that converts into it."""
@@ -88,10 +94,13 @@ class Unit:
     name: str
     convert: callable
     decimals: int
+    render: callable | None = None
 
     def format(self, raw: float) -> str:
         if raw is None or (isinstance(raw, float) and not np.isfinite(raw)):
             return ""
+        if self.render is not None:
+            return self.render(self.convert(raw))
         return f"{self.convert(raw):.{self.decimals}f}"
 
 
@@ -102,7 +111,16 @@ UNITS: dict[str, Unit] = {
     "bps": Unit("bps", decimal_to_bps, 3),
     "ratio": Unit("", lambda x: x, 3),        # Sharpe, Sortino, Calmar
     "count": Unit("", lambda x: x, 0),
+    "percent_share": Unit("%", decimal_to_percent, 1),
     "multiple": Unit("x", lambda x: x, 2),
+    # A share reported to one decimal rounds 0.1586% to 0.2%, which is
+    # not the precision the text depends on.
+    "percent_share_precise": Unit("%", decimal_to_percent, 2),
+    "factor": Unit("", lambda x: x, 1),           # "3.2 times the turnover"
+    "years": Unit("", lambda x: x, 1),
+    "correlation": Unit("", lambda x: x, 2),
+    "condition_number": Unit("", lambda x: x, 1),
+    "scientific": Unit("", lambda x: x, 2, render=_scientific),
 }
 
 # Which unit each reported quantity is displayed in. Adding a metric to
@@ -133,6 +151,15 @@ METRIC_UNITS: dict[str, str] = {
     "ci95_upper": "ratio",
     "p_value": "ratio",
     "n_observations": "count",
+    "percent_share": "percent_share",
+    "percent_share_precise": "percent_share_precise",
+    "count": "count",
+    "ratio": "ratio",
+    "factor": "factor",
+    "years": "years",
+    "correlation": "correlation",
+    "condition_number": "condition_number",
+    "scientific": "scientific",
 }
 
 

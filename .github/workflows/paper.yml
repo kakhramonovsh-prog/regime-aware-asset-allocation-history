@@ -12,6 +12,8 @@ on:
       - 'scripts/build_paper.py'
       - 'scripts/check_paper.py'
       - 'scripts/generate_paper_outputs.py'
+      - 'scripts/number_census.py'
+      - 'scripts/check_citations.py'
       - '.github/workflows/paper.yml'
   pull_request:
   workflow_dispatch:
@@ -54,6 +56,9 @@ jobs:
       # frozen snapshot, which cannot be published.
       - name: Citation audit (draft mode; blocks only at release)
         run: python scripts/check_citations.py
+
+      - name: Number census (every literal classified; no typed results)
+        run: python scripts/number_census.py
 
       - name: Build the paper (acceptance gate)
         run: python scripts/build_paper.py --skip-regen

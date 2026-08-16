@@ -151,3 +151,47 @@ def test_every_robustness_specification_is_registered():
 
     for spec in build_specifications():
         assert latex.is_registered(spec.name), f"{spec.name} has no display label"
+
+
+# ---------------------------------------------------------------------------
+# Macro naming (LaTeX command names are letters-only)
+# ---------------------------------------------------------------------------
+
+def test_macro_names_contain_no_digits():
+    r"""\cap30Diff is invalid LaTeX and would also collide with \cap."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from scripts.generate_paper_outputs import macro_name
+
+    for key in ("cap30_diff", "post2020_diff", "state1_condition",
+                "neff_kappa_120", "var_95"):
+        name = macro_name(key)
+        assert name.isalpha(), f"{key} -> {name} is not letters-only"
+        assert not any(ch.isdigit() for ch in name)
+
+
+def test_macro_name_rejects_unmappable_digits():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from scripts.generate_paper_outputs import macro_name
+
+    assert macro_name("cap30_diff") == "capThirtyDiff"
+    assert macro_name("primary_sharpe_diff") == "primarySharpeDiff"
+
+
+def test_generated_macros_file_is_latex_legal():
+    r"""Every \newcommand in the generated file must be letters-only."""
+    import re
+    from pathlib import Path
+
+    macros = Path(__file__).resolve().parents[1] / "paper" / "macros.tex"
+    if not macros.exists():
+        return
+    names = re.findall(r"newcommand\{\\(\w+)\}", macros.read_text(encoding="utf-8"))
+    assert names, "no macros found"
+    for name in names:
+        assert name.isalpha(), f"macro {name!r} contains a non-letter"
