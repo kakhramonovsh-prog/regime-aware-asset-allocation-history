@@ -232,6 +232,12 @@ def main() -> None:
         "vol_difference_magnitude": abs(float(
             secondary.loc[secondary["metric"] == "ann_volatility",
                           "observed_difference"].iloc[0])),
+        "vol_ci_lower": float(
+            secondary.loc[secondary["metric"] == "ann_volatility",
+                          "ci95_lower"].iloc[0]),
+        "vol_ci_upper": float(
+            secondary.loc[secondary["metric"] == "ann_volatility",
+                          "ci95_upper"].iloc[0]),
         "regime_half_turnover": float(
             regime_turnover["half_turnover_reporting"].sum() / years),
         "comparator_half_turnover": float(
@@ -244,6 +250,8 @@ def main() -> None:
         "primary_p_value": "p_value",
         "vol_difference": "vol_difference",
         "vol_difference_magnitude": "vol_difference",
+        "vol_ci_lower": "vol_difference",
+        "vol_ci_upper": "vol_difference",
         "hac_annual_return_diff": "mean_return_difference_annualized",
         "regime_sharpe": "sharpe",
         "comparator_sharpe": "sharpe",
