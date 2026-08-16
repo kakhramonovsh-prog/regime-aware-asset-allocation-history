@@ -36,7 +36,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=str(PROJECT_ROOT / "config" / "config.yaml"))
     parser.add_argument(
-        "--phase", choices=["4", "5", "6", "7", "8", "9", "10", "all"], default="all"
+        "--phase",
+        choices=["4", "5", "6", "7", "8", "9", "10", "11", "all"],
+        default="all",
     )
     args = parser.parse_args()
 
@@ -68,6 +70,8 @@ def main() -> None:
         run_phase9(config, plan, prices)
     if args.phase in ("10", "all"):
         run_phase10(config, plan, macro)
+    if args.phase in ("11", "all"):
+        run_phase11(config, plan, macro)
 
 
 def run_phase4(config: dict, plan: dict, prices: pd.DataFrame, macro: pd.DataFrame) -> None:
@@ -891,6 +895,199 @@ def run_phase10(config: dict, plan: dict, macro: pd.DataFrame) -> None:
     )
     print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
     print("Phase 10 complete. Descriptive only: no significance tested.")
+
+
+def run_phase11(config: dict, plan: dict, macro: pd.DataFrame) -> None:
+    """Inference on the preregistered primary comparison.
+
+    Bootstraps the SAME estimand Phase 10 reported: paired daily excess
+    returns annualized by sqrt(252). Only regime-aware vs rolling
+    Ledoit-Wolf at 10 bps is confirmatory.
+    """
+    from src import metrics as mt
+    from src import statistical_tests as st
+
+    bt_dir = PROJECT_ROOT / "outputs" / "backtests"
+    main_bps = int(config["backtest"]["main_cost_bps"])
+    scenarios = [int(b) for b in config["backtest"]["transaction_cost_bps"]]
+
+    net_frames: dict[int, pd.DataFrame] = {}
+    for bps in scenarios:
+        frame = pd.read_parquet(bt_dir / f"net_returns_{bps}bps.parquet")
+        frame["date"] = pd.to_datetime(frame["date"])
+        net_frames[bps] = frame.pivot(index="date", columns="strategy", values="net_return")
+
+    dates = net_frames[main_bps].index
+    risk_free = mt.risk_free_daily(dates, macro["DFF"], entry_date=dates[0])
+
+    PRIMARY, COMPARATOR = "regime_minvar", "rolling_lw_minvar"
+    cfg = st.BootstrapConfig(
+        n_replications=int(plan["inference"]["bootstrap_replications"]),
+        seed=int(plan["inference"]["bootstrap_seed"]),
+        mean_block=21,
+    )
+    print(f"\nPhase 11: inference on {PRIMARY} vs {COMPARATOR} at {main_bps} bps")
+    print(f"  paired stationary bootstrap, {cfg.n_replications} reps, seed "
+          f"{cfg.seed}, mean block {cfg.mean_block} days, daily excess returns")
+
+    def series(bps: int, strategy: str) -> tuple[pd.Series, pd.Series]:
+        net = net_frames[bps][strategy]
+        return net, net - risk_free.reindex(net.index).fillna(0.0)
+
+    net_a, excess_a = series(main_bps, PRIMARY)
+    net_b, excess_b = series(main_bps, COMPARATOR)
+
+    observed = {
+        "sharpe": mt.sharpe_ratio(net_a, risk_free) - mt.sharpe_ratio(net_b, risk_free),
+        "sortino": mt.sortino_ratio(net_a, risk_free) - mt.sortino_ratio(net_b, risk_free),
+        "ann_volatility": mt.annualized_volatility(net_a) - mt.annualized_volatility(net_b),
+        "cagr": mt.cagr(mt.wealth_path(net_a)) - mt.cagr(mt.wealth_path(net_b)),
+        "max_drawdown": mt.max_drawdown(mt.wealth_path(net_a)) - mt.max_drawdown(mt.wealth_path(net_b)),
+        "calmar": (mt.calmar_ratio(mt.cagr(mt.wealth_path(net_a)), mt.max_drawdown(mt.wealth_path(net_a)))
+                   - mt.calmar_ratio(mt.cagr(mt.wealth_path(net_b)), mt.max_drawdown(mt.wealth_path(net_b)))),
+    }
+
+    metrics = tuple(observed)
+    draws = st.paired_bootstrap_differences(
+        excess_a, excess_b, net_a, net_b, metrics, cfg
+    )
+
+    inference_dir = PROJECT_ROOT / "outputs" / "inference"
+    inference_dir.mkdir(parents=True, exist_ok=True)
+    artifacts: list[Path] = []
+
+    draws_frame = pd.DataFrame({f"d_{m}": draws[m] for m in metrics})
+    dpath = inference_dir / "primary_bootstrap_draws.parquet"
+    draws_frame.to_parquet(dpath, index=False)
+    artifacts.append(dpath)
+    print(f"  inference {dpath.name}  ({len(draws_frame)} draws x {len(metrics)} metrics)")
+
+    low, high = st.percentile_interval(draws["sharpe"], cfg.confidence)
+    p_one_sided = st.centered_bootstrap_pvalue(
+        draws["sharpe"], observed["sharpe"], "greater"
+    )
+    primary = pd.DataFrame([{
+        "comparison": f"{PRIMARY} minus {COMPARATOR}",
+        "cost_bps": main_bps,
+        "estimand": "annualized Sharpe on daily excess returns (sqrt 252)",
+        "observed_difference": observed["sharpe"],
+        "ci95_lower": low,
+        "ci95_upper": high,
+        "interval_excludes_zero": bool(low > 0 or high < 0),
+        "bootstrap_mean": float(np.mean(draws["sharpe"])),
+        "bootstrap_sd": float(np.std(draws["sharpe"], ddof=1)),
+        "p_one_sided_centered_null": p_one_sided,
+        "n_replications": cfg.n_replications,
+        "mean_block_days": cfg.mean_block,
+        "seed": cfg.seed,
+        "n_daily_observations": len(net_a),
+    }])
+    ppath = inference_dir / "primary_inference_summary.csv"
+    primary.to_csv(ppath, index=False)
+    artifacts.append(ppath)
+    print(f"  PRIMARY: dSharpe {observed['sharpe']:+.4f}, 95% CI "
+          f"[{low:+.4f}, {high:+.4f}], excludes zero: {bool(low > 0 or high < 0)}")
+
+    # Block-length sensitivity (never replaces the 21-day primary).
+    rows = []
+    for block in (cfg.mean_block, *cfg.sensitivity_blocks):
+        block_draws = st.paired_bootstrap_differences(
+            excess_a, excess_b, net_a, net_b, ("sharpe",), cfg, mean_block=block
+        )["sharpe"]
+        bl, bh = st.percentile_interval(block_draws, cfg.confidence)
+        rows.append({
+            "mean_block_days": block,
+            "role": "PRIMARY" if block == cfg.mean_block else "sensitivity",
+            "observed_difference": observed["sharpe"],
+            "ci95_lower": bl, "ci95_upper": bh,
+            "interval_excludes_zero": bool(bl > 0 or bh < 0),
+            "bootstrap_sd": float(np.std(block_draws, ddof=1)),
+        })
+    sensitivity = pd.DataFrame(rows)
+    spath = inference_dir / "block_length_sensitivity.csv"
+    sensitivity.to_csv(spath, index=False)
+    artifacts.append(spath)
+    print(f"  inference {spath.name}")
+
+    # HAC on paired daily net return differences.
+    hac_rows = []
+    for lags in (21, 5, 42):
+        result = st.hac_mean_difference(net_a, net_b, lags=lags)
+        result["role"] = "PRIMARY" if lags == 21 else "sensitivity"
+        hac_rows.append(result)
+    hac = pd.DataFrame(hac_rows)
+    hpath = inference_dir / "hac_mean_difference.csv"
+    hac.to_csv(hpath, index=False)
+    artifacts.append(hpath)
+    print(f"  inference {hpath.name}")
+
+    # Secondary metric intervals.
+    secondary_rows = []
+    for metric in metrics:
+        ml, mh = st.percentile_interval(draws[metric], cfg.confidence)
+        secondary_rows.append({
+            "metric": metric,
+            "observed_difference": observed[metric],
+            "ci95_lower": ml, "ci95_upper": mh,
+            "interval_excludes_zero": bool(ml > 0 or mh < 0),
+            "path_dependent": metric in st.PATH_DEPENDENT,
+            "role": "CONFIRMATORY" if metric == "sharpe" else "secondary",
+        })
+    secondary = pd.DataFrame(secondary_rows)
+    spath2 = inference_dir / "secondary_metric_intervals.csv"
+    secondary.to_csv(spath2, index=False)
+    artifacts.append(spath2)
+    print(f"  inference {spath2.name}")
+
+    # Secondary comparison family with Holm adjustment.
+    family_rows = []
+    other_strategies = ["ewma_scaled_minvar", "static_minvar", "equal_weight", "static_6040"]
+    for strategy in other_strategies:
+        net_x, excess_x = series(main_bps, strategy)
+        d = st.paired_bootstrap_differences(
+            excess_x, excess_b, net_x, net_b, ("sharpe",), cfg
+        )["sharpe"]
+        obs = mt.sharpe_ratio(net_x, risk_free) - mt.sharpe_ratio(net_b, risk_free)
+        cl, ch = st.percentile_interval(d, cfg.confidence)
+        family_rows.append({
+            "comparison": f"{strategy} minus {COMPARATOR}", "cost_bps": main_bps,
+            "observed_difference": obs, "ci95_lower": cl, "ci95_upper": ch,
+            "p_one_sided_centered_null": st.centered_bootstrap_pvalue(d, obs, "greater"),
+        })
+    for bps in [b for b in scenarios if b != main_bps]:
+        na, ea = series(bps, PRIMARY)
+        nb, eb = series(bps, COMPARATOR)
+        d = st.paired_bootstrap_differences(ea, eb, na, nb, ("sharpe",), cfg)["sharpe"]
+        obs = mt.sharpe_ratio(na, risk_free) - mt.sharpe_ratio(nb, risk_free)
+        cl, ch = st.percentile_interval(d, cfg.confidence)
+        family_rows.append({
+            "comparison": f"{PRIMARY} minus {COMPARATOR}", "cost_bps": bps,
+            "observed_difference": obs, "ci95_lower": cl, "ci95_upper": ch,
+            "p_one_sided_centered_null": st.centered_bootstrap_pvalue(d, obs, "greater"),
+        })
+    family = pd.DataFrame(family_rows)
+    family["p_holm"] = st.holm_adjust(family["p_one_sided_centered_null"])
+    family["role"] = "secondary / robustness"
+    family["note"] = "not confirmatory; the preregistered primary is unaffected"
+    mpath = inference_dir / "multiple_comparison_adjustments.csv"
+    family.to_csv(mpath, index=False)
+    artifacts.append(mpath)
+    print(f"  inference {mpath.name}  ({len(family)} secondary comparisons)")
+
+    manifest_path = eda.write_phase_manifest(
+        artifacts, PROJECT_ROOT, SNAPSHOT_MANIFEST,
+        PROJECT_ROOT / "outputs" / "phase11_manifest.json",
+        phase="11-inference",
+        note=(
+            "Paired stationary-bootstrap inference on daily excess returns, "
+            "matching the Phase 10 estimand. Only regime-aware vs rolling "
+            "Ledoit-Wolf at 10 bps is confirmatory; all other comparisons are "
+            "secondary or robustness and carry Holm-adjusted p-values. "
+            "Diebold-Mariano is deliberately not applied to portfolio returns."
+        ),
+    )
+    print(f"\nProvenance manifest: {manifest_path.relative_to(PROJECT_ROOT)}")
+    print("Phase 11 complete.")
 
 
 if __name__ == "__main__":
