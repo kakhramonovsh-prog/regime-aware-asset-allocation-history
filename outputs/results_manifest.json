@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-08-17T03:59:18+00:00",
-  "git_commit": "f50a1793a66baa08605245d77de824cd52b797f7",
-  "config_sha256": "3c3dd76044df58c673c20ce4e6983edd5afcd5a03ee0d446dd5599d326a7acd2",
+  "generated_at_utc": "2026-08-17T04:36:23+00:00",
+  "git_commit": "842f4ff91e946ff26aa0bdbcda33dbf68d1a14d2",
+  "config_sha256": "479eeb8cd29f766d0f22bbe7e7464c955339e09d94b9147b9e82b5098a423760",
   "data_snapshot_sha256": "6ce35432bae2969dc7598e150f877a3faec5a4453e9da77077b71fb3736715c2",
   "python_version": "3.12.10",
   "headline_values": {
@@ -83,7 +83,7 @@
     "paper/tables/table3_secondary_intervals.tex": "83f05859df0a2b729bee853632df523c037f57918d1c024b113ac24808a84357",
     "paper/tables/table4_robustness_grid.csv": "737442862b9fa644f70cd81ef8d26e3230cacff9547b222232b4bb8862722dc8",
     "paper/tables/table4_robustness_grid.tex": "6fb8e6d3698ef701787db222d4c8e2996ff019b12486105cb6dd561bac7d7899",
-    "paper/macros.tex": "a4955e633fb7f1a89f52bb880296d1ad97a69f86f83cac6a3c59a3b362254453",
+    "paper/macros.tex": "b1911f8ab3cd5b5871692bc40d65c0e7966ed0e4c37a9e987bbd1d619b882b8c",
     "paper/result_inventory.csv": "05ec0b232c71165033dbf92d4d47c2415bcb09aefea1e6fd14175180fba87efe",
     "paper/figures/normalized_prices.png": "1d761423179beaa7d2b67e1f3590f6d8fe620ee7d6be6665c91f539efe052e47",
     "paper/figures/vix_vs_realized_vol.png": "a0221041c7a94e0e0565a672bb1906ae38b626a790b188e306eef5e68746d4b0",

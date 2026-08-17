@@ -10,6 +10,14 @@ project:
   name: regime-aware-asset-allocation
   random_seed: 42
 
+manuscript:
+  # Frozen date printed on the title page. This must never be \today:
+  # a clean-clone rebuild on a later day would change page 1 and with it
+  # the PDF hash that the visual inspection attests to, so the release
+  # artifact would stop being reproducible the day after it was made.
+  # Bump this deliberately when cutting a new manuscript release.
+  release_date: "2026-08-17"
+
 data:
   # GLD (the youngest asset in the universe) began trading 2004-11-18.
   # Raw downloads start at inception; the aligned analysis sample effectively

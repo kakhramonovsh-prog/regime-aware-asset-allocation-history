@@ -26,7 +26,10 @@ Business. Code, preregistration and complete output:
 \url{https://github.com/kakhramonovsh-prog/regime-aware-asset-allocation}.
 I thank the reviewers who read successive drafts of the design and
 forced several corrections recorded in the amendment log.}}
-\date{\today}
+% Never \today: it would change page 1, and therefore the PDF hash the
+% visual inspection attests to, on every rebuild. Frozen in
+% config/config.yaml (manuscript.release_date) and emitted as a macro.
+\date{\releaseDate}
 
 \begin{document}
 \maketitle

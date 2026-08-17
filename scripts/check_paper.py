@@ -70,6 +70,33 @@ def main() -> None:
     else:
         print(f"  {len(math_regions)} math regions, no macro closes math mode")
 
+    # A date that resolves at compile time makes the artifact
+    # irreproducible: the same source builds a different page 1, and a
+    # different PDF hash, tomorrow. The visual inspection attests to a
+    # specific hash, so this must fail the build rather than be noticed
+    # later by comparing hashes.
+    print("\nReproducible date:")
+    nondeterministic = []
+    for command in (r"\\today", r"\\pdfcreationdate", r"\\pdffilemoddate"):
+        for name in SOURCES:
+            body = (PAPER / name).read_text(encoding="utf-8")
+            # Ignore commented-out lines: the prohibition is explained in
+            # a comment next to the \date line.
+            live = "\n".join(line for line in body.splitlines()
+                             if not line.lstrip().startswith("%"))
+            if re.search(command, live):
+                nondeterministic.append(f"{name}: {command.replace(chr(92) * 2, chr(92))}")
+    if nondeterministic:
+        for item in nondeterministic:
+            print(f"  [FAIL] {item}")
+        problems.append(
+            f"compile-time date command(s) in manuscript source: "
+            f"{nondeterministic}; use the frozen \\releaseDate macro "
+            f"(config/config.yaml manuscript.release_date)"
+        )
+    else:
+        print("  no compile-time date commands; the title date is frozen")
+
     print("\nInputs:")
     for target in re.findall(r"\\input\{([^}]+)\}", text):
         candidate = PAPER / target

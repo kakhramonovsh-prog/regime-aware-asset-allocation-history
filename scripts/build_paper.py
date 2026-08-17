@@ -14,6 +14,8 @@ Exit codes: 0 clean build, 1 build or gate failure.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
+import os
 import re
 import shutil
 import subprocess
@@ -96,6 +98,24 @@ def main() -> None:
     # ------------------------------------------------------------------
     # 3. Compile
     # ------------------------------------------------------------------
+    # pdfTeX stamps /CreationDate and /ModDate into the PDF trailer from
+    # the wall clock, so two builds of identical source differ in bytes
+    # and therefore in hash. SOURCE_DATE_EPOCH pins those; FORCE_SOURCE_DATE
+    # makes pdfTeX honour it for \pdfcreationdate as well. Both are set
+    # from the frozen manuscript release date so the value is derived,
+    # not another number to keep in sync by hand.
+    import yaml  # noqa: PLC0415
+
+    config = yaml.safe_load(
+        (PROJECT_ROOT / "config" / "config.yaml").read_text(encoding="utf-8"))
+    release = dt.date.fromisoformat(str(config["manuscript"]["release_date"]))
+    epoch = int(dt.datetime(release.year, release.month, release.day,
+                            tzinfo=dt.timezone.utc).timestamp())
+    os.environ["SOURCE_DATE_EPOCH"] = str(epoch)
+    os.environ["FORCE_SOURCE_DATE"] = "1"
+    print(f"\nSOURCE_DATE_EPOCH={epoch} ({release.isoformat()}), "
+          f"FORCE_SOURCE_DATE=1")
+
     latexmk = shutil.which("latexmk")
     if latexmk is None:
         sys.exit(

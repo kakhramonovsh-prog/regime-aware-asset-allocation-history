@@ -90,6 +90,12 @@ MACRO_USE = re.compile(r"\\([A-Za-z]+)")
 # this separates "a result macro" from "any command" without a list.
 GENERATED_NAME = re.compile(r"^[a-z]+[A-Z]")
 
+# Generated macros that are document metadata rather than reported
+# results, so they carry no raw value, unit or source artifact. Keep
+# this set tiny: anything that states a quantity about the data belongs
+# in the result inventory, not here.
+NON_RESULT_MACROS = {"\\releaseDate"}
+
 
 def macros_used() -> set[str]:
     """Generated macros the prose actually invokes, as ``\\name``."""
@@ -128,7 +134,7 @@ def check_inventory() -> list[str]:
     known = set(inventory["macro"])
     invoked = {f"\\{name}" for name in MACRO_USE.findall(prose_text())
                if GENERATED_NAME.match(name)}
-    undefined = sorted(invoked - known)
+    undefined = sorted(invoked - known - NON_RESULT_MACROS)
     if undefined:
         problems.append(
             f"prose invokes {len(undefined)} result macro(s) absent from the "
