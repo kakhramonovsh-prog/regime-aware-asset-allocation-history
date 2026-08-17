@@ -314,3 +314,62 @@ bibliography at 22. The discrepancy is now closed at the source.
 This pass attests to PDF `73dac58e…9639` and nothing else. Any change to
 `paper/`, `src/` or the build scripts invalidates it and requires a new
 build, a new hash and a fresh pass.
+
+---
+
+## Round 6 — PASSED, reproducible release artifact (`v0.13.1`)
+
+The `v0.13.0-manuscript` artifact was built with `\date{\today}`, so the
+same source would have produced a different page 1, and a different
+hash, on any later day. The inspection attests to a hash, so that
+artifact was reproducible only on the day it was cut. The date is now
+frozen and the pass repeated.
+
+| Field | Value |
+|---|---|
+| PDF SHA-256 | `3dc678f40de5a7c2fc64f79191fd5488770dc8bed2e9fe7ea31d270106d4ae58` |
+| Commit | `91c6807` |
+| CI run | 31995859922 |
+| Page count | 15 |
+| Bytes | 346,347 |
+| TeX | pdfTeX 3.141592653-2.6-1.40.26, TeX Live 2024 |
+| Python | 3.12 (GitHub Actions ubuntu-latest) |
+| Tests | 268 passing |
+| Citations | 22 cited, 22 verified, 0 pending |
+| Visual result | **No defects** |
+
+### Reproducibility, demonstrated rather than asserted
+
+| Control | State |
+|---|---|
+| Title date | `config.yaml` `manuscript.release_date` → generated `\releaseDate`. `\today` removed. |
+| Guard | `check_paper.py` fails on `\today`, `\pdfcreationdate`, `\pdffilemoddate` in manuscript source. Mutation-tested: reinstating `\today` exits 1. |
+| PDF metadata | `SOURCE_DATE_EPOCH=1786924800` (2026-08-17T00:00:00Z) and `FORCE_SOURCE_DATE=1`, both derived from the same release date. |
+| macros.tex | Wall-clock header stamp removed; it recorded a build time that made the file differ on every run. |
+| Tests | `tests/test_reproducible_build.py`, five checks. |
+
+**Independent rebuild:** the workflow was re-run on a fresh runner with
+a fresh checkout of the same commit. The two PDFs are **byte-identical**
+(`3dc678f4…ae58` both times). Reproducibility is verified, not assumed.
+
+### Visual result
+
+Page-by-page text extraction against the `v0.13.0-manuscript` artifact
+shows **all 15 pages identical**. The visible document did not change;
+only the PDF metadata that was previously taken from the wall clock,
+which is why the hash differs. Page 1 was additionally confirmed by eye:
+the title date reads "August 17, 2026", now sourced from the frozen
+macro rather than from the compile date.
+
+### Tag history — disclosure
+
+`v0.13.0-manuscript` was pushed, then **moved**. The original tag object
+`ea47d80` asserted "Tests 260 passing"; the true count was 261, and the
+tag was force-updated to `09cdccc` with the correct figure roughly a
+minute later. It had been published, so moving it was the wrong remedy
+even though it was unconsumed.
+
+**Going forward, published tags are preserved.** A correction is issued
+as a new tag — which is why the date freeze ships as `v0.13.1` rather
+than by moving `v0.13.0-manuscript` again. `v0.13.0-manuscript` remains
+pointing at `842f4ff` and is left alone.
