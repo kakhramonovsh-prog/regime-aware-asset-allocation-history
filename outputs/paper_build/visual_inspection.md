@@ -253,3 +253,64 @@ The manuscript cannot be tagged `v0.13.0-manuscript` on visual grounds
 alone. `scripts/check_citations.py --release` still blocks on 14
 references whose bibliographic details and supporting claims are not
 yet verified.
+
+---
+
+## Round 5 — PASSED, release artifact for `v0.13.0-manuscript`
+
+Round 4 was a pre-release inspected artifact. The citation pass changed
+`references.bib`, which can repaginate the bibliography and everything
+after it, so the approval was invalidated and the pass repeated.
+
+| Field | Value |
+|---|---|
+| PDF SHA-256 | `73dac58e8537d34ea88ebe995ce49b44b9601962daded6d020574f8f62cf9639` |
+| Commit | `7e43350` |
+| CI run | 31992993874 |
+| Page count | 15 |
+| Bytes | 346,347 |
+| Inspection date | 2026-08-17 |
+| Build environment | pdfTeX 3.141592653-2.6-1.40.26, TeX Live 2024, format pdflatex 2025.3.10, Python 3.12, GitHub Actions ubuntu-latest, compiled 17 AUG 2026 04:02 |
+| Automated gate | PASSED |
+| Number census | PASSED |
+| Citation release gate | PASSED (22 cited, 22 verified, 0 pending) |
+| Visual result | **No defects** |
+
+### Method
+
+Eyeballing 15 pages for pagination shifts is weaker than comparing them,
+so this round extracted the text of every page from both the Round-4 PDF
+and this one and diffed them page by page. That localizes any shift
+exactly rather than relying on a reader noticing one.
+
+| Pages | Result |
+|---|---|
+| 2–14 | **Byte-identical text** to the Round-4 artifact, which was inspected page by page in Rounds 3 and 4. No float moved and nothing repaginated. |
+| 1 | Differs only in the title date (`\today`: 16 → 17 August 2026). Visually confirmed: layout, abstract, keywords, JEL and footnote unchanged. |
+| 15 | Differs only in `58(4):1651–1684` → `58(4):1651–1683`. Visually confirmed. |
+
+Visual confirmation was additionally performed on pages 1, 10, 14 and 15
+— the two pages that changed, plus the figure float on page 10 and the
+first bibliography page, being the highest layout-risk pages. The figure
+is unmoved and all thirteen specification rows render.
+
+### Bibliography verified in the rendered PDF
+
+- Jagannathan and Ma reads **1651–1683**, the corrected range.
+- Holm carries **no DOI**, while every other entry does — correct, since
+  `10.2307/4615733` does not resolve.
+- Case protections held: "1/N", "EM algorithm", "United Kingdom",
+  "Sharpe ratio", "Markowitz optimization enigma".
+
+### On the 22-versus-23 discrepancy
+
+Removing `hansen2005` changed the PDF not at all, which is the direct
+confirmation that it was never rendered: `plainnat` emits only cited
+entries, so an uncited entry inflates the `.bib` count while leaving the
+bibliography at 22. The discrepancy is now closed at the source.
+
+### Standing rule
+
+This pass attests to PDF `73dac58e…9639` and nothing else. Any change to
+`paper/`, `src/` or the build scripts invalidates it and requires a new
+build, a new hash and a fresh pass.

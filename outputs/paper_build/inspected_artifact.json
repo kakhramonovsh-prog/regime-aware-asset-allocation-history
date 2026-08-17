@@ -1,14 +1,27 @@
 {
-  "round": 4,
-  "status": "PASSED - no defects",
-  "pdf_sha256": "3e7e5c4e54956dbd7dcd2f8186a24b04ba7696497f594e5f9240c8d79b2d73fa",
+  "round": 5,
+  "status": "PASSED - no defects; release artifact",
+  "pdf_sha256": "73dac58e8537d34ea88ebe995ce49b44b9601962daded6d020574f8f62cf9639",
   "page_count": 15,
-  "bytes": 346207,
-  "ci_run_id": "31979428122",
-  "commit_built": "deea4bb",
-  "commit_at_inspection": "deea4bb0aa6c2a8d70682229f88cd295055d1e36",
-  "inspection_date": "2026-08-16",
-  "note": "Inspection attests to this exact PDF. Any change to paper/, src/ or the build scripts invalidates it and requires a new build, a new hash and a fresh pass.",
+  "bytes": 346347,
+  "ci_run_id": "31992993874",
+  "commit_built": "7e43350",
+  "commit_at_inspection": "7e4335029c26264ac29017e29a5cdd4fa11b44fa",
+  "inspection_date": "2026-08-17",
+  "build_environment": {
+    "engine": "pdfTeX 3.141592653-2.6-1.40.26",
+    "distribution": "TeX Live 2024",
+    "format": "pdflatex 2025.3.10",
+    "python": "3.12",
+    "runner": "GitHub Actions ubuntu-latest",
+    "compiled_at": "17 AUG 2026 04:02"
+  },
+  "citations": {
+    "cited": 22,
+    "verified": 22,
+    "pending": 0
+  },
+  "note": "Release artifact for v0.13.0-manuscript. Inspection attests to this exact PDF; any change to paper/, src/ or the build scripts invalidates it.",
   "history": [
     {
       "round": 1,
@@ -27,6 +40,12 @@
       "run": "31979149256",
       "pdf_sha256": "5c7795e458c578ecd993a4507f56421b97ac6d2e4814f8e6cbb086e744853156",
       "result": "PASSED with 1 wording residual"
+    },
+    {
+      "round": 4,
+      "run": "31979428122",
+      "pdf_sha256": "3e7e5c4e54956dbd7dcd2f8186a24b04ba7696497f594e5f9240c8d79b2d73fa",
+      "result": "PASSED - no defects"
     }
   ]
 }
