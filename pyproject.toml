@@ -2,7 +2,7 @@
 name = "regime-aware-asset-allocation"
 version = "0.1.0"
 description = "Regime-aware volatility forecasting and dynamic asset allocation: evidence from U.S. financial markets"
-authors = [{ name = "Shakhrukh Kakhramonov", email = "kakhramonovsh@gmail.com" }]
+authors = [{ name = "Shakhrukh Kakhramonov" }]
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11,<3.14"
