@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -28,9 +29,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BIB = PROJECT_ROOT / "paper" / "references.bib"
 
 # Crossref asks for a contact address so they can reach you about
-# excessive polling; it also routes the request to the faster pool.
-MAILTO = "kakhramonovsh@gmail.com"
-USER_AGENT = f"regime-aware-asset-allocation/1.0 (mailto:{MAILTO})"
+# excessive polling; it also routes the request to their faster pool.
+# Read from the environment rather than hard-coded: this file is public,
+# and a literal address here is scraped.
+MAILTO = os.environ.get("CROSSREF_MAILTO", "")
+USER_AGENT = (f"regime-aware-asset-allocation/1.0 (mailto:{MAILTO})" if MAILTO
+              else "regime-aware-asset-allocation/1.0")
 
 
 def parse_bib(text: str) -> dict[str, dict[str, str]]:
